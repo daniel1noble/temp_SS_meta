@@ -56,45 +56,6 @@ There are clearly a few things that need to be sorted. First, we need to convert
     # Add in a species identifier
        data$spp <- gsub(" ", "", paste0(data$genus, "_", data$species))
 
-# Actually, I stupidly just realized that we can't do this because this puts the scale on a non-ratio value so effects are undefined with the ratios. Will just have to assume that they are probably ok. We can do this if we used SMD.
-
-   # # We also need to convert the proportion data to relevant values. Note that we have both proportion AND percentages, so we need to handle these slightly differently because we need to convert the percentages and their corresponding standard deviations (which are in the same units) to proportions, so what we do to the mean we have to do to SD. 
-#    prop_convert <- function(p, sd_p){
-#    	logit_p  <- psych::logit(p) + ( (sd_p^2) / 2) * ( (1 / ( (1-p)^2)) - 1/ (p^2) )
-#    	sd_logit <- (sd_p^2) * ( (1/p) +  (1 / (1-p)) )^2#
-
-#    	return(data.frame(logit_p, sd_logit))
-#    }#
-
-#    percent_convert <- function(per, sd_per){
-#    	#Convert the mean percentage
-#    	logit_p  <- psych::logit(per/100) + (((sd_per/100)^2) / 2) * ( (1 / (1- (per/100)^2)) - (1 / ((per/100)^2) ) )
-#    	#Convert the SD of the mean
-#    	sd_logit <- ((sd_per/100)^2) * ( (1/(per/100)) +  (1 / (1-(per/100))) )^2#
-
-#    	return(data.frame(logit_p, sd_logit))
-#    }#
-
-#    convert_prop_percent <- function(data){
-#    	# Match the rows that meet the requirements
-#    	map_percent <- which(data$prop == "2", data$prop)
-#    	   map_prop <- which(data$prop == "1", data$prop)#
-
-#    	# Convert the percentages and add into the first treatment
-#    	   	data[map_percent, c("X_T1", "Err_T1")] <- percent_convert(data[map_percent,]$X_T1, data[map_percent,]$Err_T1)
-#    	   	data[map_percent, c("X_T2", "Err_T2")] <- percent_convert(data[map_percent,]$X_T2, data[map_percent,]$Err_T2)#
-
-#    	# Convert the proportions
-#			data[map_prop, c("X_T1", "Err_T1")] <- prop_convert(data[map_prop,]$X_T1, data[map_prop,]$Err_T1)
-#    	   	data[map_prop, c("X_T2", "Err_T2")] <- prop_convert(data[map_prop,]$X_T2, data[map_prop,]$Err_T2)  #
-
-#    	 return(data)  
-#    }#
-
-#    # Now convert the percentages and proportions to logit scales using the Delta method to approximate the mean and sd on the logit scale.
-#    data <- convert_prop_percent(data)
-
-
     # Extract male data, and because errors are converted to SD now, we can exclude the Err_type columns. We also want to add an observation-level random effect
       	  males <- filter(data, sex == "males")[, -match(c("Err_T1_Type","Err_T2_Type"), colnames(data))]
       males$obs <- 1:nrow(males)
@@ -141,7 +102,6 @@ Then we can look at the male data, it's a bit more as many studies quantify and 
   kable(lnRR_males) %>%
   kable_styling(font = 11) %>%
   scroll_box(width = "100%", height = "200px")
-
 ```
 
 We can also have a look at the mean-variance relationship in these data:

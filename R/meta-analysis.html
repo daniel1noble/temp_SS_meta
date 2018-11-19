@@ -304,44 +304,6 @@ div.tocify {
     # Add in a species identifier
        data$spp &lt;- gsub(&quot; &quot;, &quot;&quot;, paste0(data$genus, &quot;_&quot;, data$species))
 
-# Actually, I stupidly just realized that we can't do this because this puts the scale on a non-ratio value so effects are undefined with the ratios. Will just have to assume that they are probably ok. We can do this if we used SMD.
-
-   # # We also need to convert the proportion data to relevant values. Note that we have both proportion AND percentages, so we need to handle these slightly differently because we need to convert the percentages and their corresponding standard deviations (which are in the same units) to proportions, so what we do to the mean we have to do to SD. 
-#    prop_convert &lt;- function(p, sd_p){
-#       logit_p  &lt;- psych::logit(p) + ( (sd_p^2) / 2) * ( (1 / ( (1-p)^2)) - 1/ (p^2) )
-#       sd_logit &lt;- (sd_p^2) * ( (1/p) +  (1 / (1-p)) )^2#
-
-#       return(data.frame(logit_p, sd_logit))
-#    }#
-
-#    percent_convert &lt;- function(per, sd_per){
-#       #Convert the mean percentage
-#       logit_p  &lt;- psych::logit(per/100) + (((sd_per/100)^2) / 2) * ( (1 / (1- (per/100)^2)) - (1 / ((per/100)^2) ) )
-#       #Convert the SD of the mean
-#       sd_logit &lt;- ((sd_per/100)^2) * ( (1/(per/100)) +  (1 / (1-(per/100))) )^2#
-
-#       return(data.frame(logit_p, sd_logit))
-#    }#
-
-#    convert_prop_percent &lt;- function(data){
-#       # Match the rows that meet the requirements
-#       map_percent &lt;- which(data$prop == &quot;2&quot;, data$prop)
-#          map_prop &lt;- which(data$prop == &quot;1&quot;, data$prop)#
-
-#       # Convert the percentages and add into the first treatment
-#           data[map_percent, c(&quot;X_T1&quot;, &quot;Err_T1&quot;)] &lt;- percent_convert(data[map_percent,]$X_T1, data[map_percent,]$Err_T1)
-#           data[map_percent, c(&quot;X_T2&quot;, &quot;Err_T2&quot;)] &lt;- percent_convert(data[map_percent,]$X_T2, data[map_percent,]$Err_T2)#
-
-#       # Convert the proportions
-#           data[map_prop, c(&quot;X_T1&quot;, &quot;Err_T1&quot;)] &lt;- prop_convert(data[map_prop,]$X_T1, data[map_prop,]$Err_T1)
-#           data[map_prop, c(&quot;X_T2&quot;, &quot;Err_T2&quot;)] &lt;- prop_convert(data[map_prop,]$X_T2, data[map_prop,]$Err_T2)  #
-
-#        return(data)  
-#    }#
-
-#    # Now convert the percentages and proportions to logit scales using the Delta method to approximate the mean and sd on the logit scale.
-#    data &lt;- convert_prop_percent(data)
-
     # Extract male data, and because errors are converted to SD now, we can exclude the Err_type columns. We also want to add an observation-level random effect
           males &lt;- filter(data, sex == &quot;males&quot;)[, -match(c(&quot;Err_T1_Type&quot;,&quot;Err_T2_Type&quot;), colnames(data))]
       males$obs &lt;- 1:nrow(males)
@@ -2177,9 +2139,3141 @@ Aquarius_remigis
 </table>
 </div>
 <p>Then we can look at the male data, it’s a bit more as many studies quantify and seem to be interested mostly in male fitness (or fitness proxies) for sexual selection. At least in the context of temperature manipulations:</p>
-<pre class="r"><code>  #  kable(lnRR_males) %&gt;%
-   # kable_styling(font = 11) %&gt;%
-    #scroll_box(width = &quot;100%&quot;, height = &quot;200px&quot;)</code></pre>
+<pre class="r"><code>  kable(lnRR_males) %&gt;%
+  kable_styling(font = 11) %&gt;%
+  scroll_box(width = &quot;100%&quot;, height = &quot;200px&quot;)</code></pre>
+<div style="border: 1px solid #ddd; padding: 5px; overflow-y: scroll; height:200px; overflow-x: scroll; width:100%; ">
+<table class="table" style="font-size: 11px; margin-left: auto; margin-right: auto;">
+<thead>
+<tr>
+<th style="text-align:right;">
+study
+</th>
+<th style="text-align:left;">
+author
+</th>
+<th style="text-align:right;">
+year
+</th>
+<th style="text-align:left;">
+journal
+</th>
+<th style="text-align:right;">
+vol
+</th>
+<th style="text-align:left;">
+sex
+</th>
+<th style="text-align:left;">
+genus
+</th>
+<th style="text-align:left;">
+species
+</th>
+<th style="text-align:left;">
+group
+</th>
+<th style="text-align:left;">
+source
+</th>
+<th style="text-align:left;">
+variable
+</th>
+<th style="text-align:right;">
+depend
+</th>
+<th style="text-align:right;">
+Tadapt
+</th>
+<th style="text-align:right;">
+T1
+</th>
+<th style="text-align:right;">
+T2
+</th>
+<th style="text-align:right;">
+X_T1
+</th>
+<th style="text-align:right;">
+Err_T1
+</th>
+<th style="text-align:right;">
+N_T1
+</th>
+<th style="text-align:right;">
+X_T2
+</th>
+<th style="text-align:right;">
+Err_T2
+</th>
+<th style="text-align:right;">
+N_T2
+</th>
+<th style="text-align:left;">
+temp.range
+</th>
+<th style="text-align:left;">
+temp.treatment.stage
+</th>
+<th style="text-align:left;">
+endo.ecto
+</th>
+<th style="text-align:left;">
+fitness
+</th>
+<th style="text-align:right;">
+prop
+</th>
+<th style="text-align:left;">
+notes
+</th>
+<th style="text-align:left;">
+spp
+</th>
+<th style="text-align:right;">
+obs
+</th>
+<th style="text-align:right;">
+yi
+</th>
+<th style="text-align:right;">
+vi
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:left;">
+Berger
+</td>
+<td style="text-align:right;">
+2014
+</td>
+<td style="text-align:left;">
+Evolution
+</td>
+<td style="text-align:right;">
+68
+</td>
+<td style="text-align:left;">
+males
+</td>
+<td style="text-align:left;">
+Callosobruchus
+</td>
+<td style="text-align:left;">
+maculatus
+</td>
+<td style="text-align:left;">
+insect
+</td>
+<td style="text-align:left;">
+fig. 1
+</td>
+<td style="text-align:left;">
+Total number of offspring (LRS)
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:right;">
+NA
+</td>
+<td style="text-align:right;">
+29
+</td>
+<td style="text-align:right;">
+36
+</td>
+<td style="text-align:right;">
+53.65
+</td>
+<td style="text-align:right;">
+24.34
+</td>
+<td style="text-align:right;">
+41
+</td>
+<td style="text-align:right;">
+29.31
+</td>
+<td style="text-align:right;">
+21.64
+</td>
+<td style="text-align:right;">
+41
+</td>
+<td style="text-align:left;">
+stress
+</td>
+<td style="text-align:left;">
+lifetime
+</td>
+<td style="text-align:left;">
+ecto
+</td>
+<td style="text-align:left;">
+direct
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:left;">
+lome
+</td>
+<td style="text-align:left;">
+Callosobruchus_maculatus
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+-0.60
+</td>
+<td style="text-align:right;">
+0.02
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:left;">
+Berger
+</td>
+<td style="text-align:right;">
+2014
+</td>
+<td style="text-align:left;">
+Evolution
+</td>
+<td style="text-align:right;">
+68
+</td>
+<td style="text-align:left;">
+males
+</td>
+<td style="text-align:left;">
+Callosobruchus
+</td>
+<td style="text-align:left;">
+maculatus
+</td>
+<td style="text-align:left;">
+insect
+</td>
+<td style="text-align:left;">
+fig. 1
+</td>
+<td style="text-align:left;">
+Total number of offspring (LRS)
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:right;">
+NA
+</td>
+<td style="text-align:right;">
+29
+</td>
+<td style="text-align:right;">
+36
+</td>
+<td style="text-align:right;">
+48.75
+</td>
+<td style="text-align:right;">
+18.57
+</td>
+<td style="text-align:right;">
+32
+</td>
+<td style="text-align:right;">
+19.07
+</td>
+<td style="text-align:right;">
+11.97
+</td>
+<td style="text-align:right;">
+32
+</td>
+<td style="text-align:left;">
+stress
+</td>
+<td style="text-align:left;">
+lifetime
+</td>
+<td style="text-align:left;">
+ecto
+</td>
+<td style="text-align:left;">
+direct
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:left;">
+ofuya
+</td>
+<td style="text-align:left;">
+Callosobruchus_maculatus
+</td>
+<td style="text-align:right;">
+2
+</td>
+<td style="text-align:right;">
+-0.94
+</td>
+<td style="text-align:right;">
+0.02
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+13
+</td>
+<td style="text-align:left;">
+Fox
+</td>
+<td style="text-align:right;">
+2006
+</td>
+<td style="text-align:left;">
+Functional Ecology
+</td>
+<td style="text-align:right;">
+20
+</td>
+<td style="text-align:left;">
+males
+</td>
+<td style="text-align:left;">
+Callosobruchus
+</td>
+<td style="text-align:left;">
+maculatus
+</td>
+<td style="text-align:left;">
+insect
+</td>
+<td style="text-align:left;">
+fig. 1A
+</td>
+<td style="text-align:left;">
+mg Mass loss (Male Investment)
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:right;">
+NA
+</td>
+<td style="text-align:right;">
+25
+</td>
+<td style="text-align:right;">
+30
+</td>
+<td style="text-align:right;">
+0.33
+</td>
+<td style="text-align:right;">
+0.07
+</td>
+<td style="text-align:right;">
+31
+</td>
+<td style="text-align:right;">
+0.32
+</td>
+<td style="text-align:right;">
+0.07
+</td>
+<td style="text-align:right;">
+27
+</td>
+<td style="text-align:left;">
+natural
+</td>
+<td style="text-align:left;">
+lifetime
+</td>
+<td style="text-align:left;">
+ecto
+</td>
+<td style="text-align:left;">
+indirect
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:left;">
+Burkina Faso_Azuki
+</td>
+<td style="text-align:left;">
+Callosobruchus_maculatus
+</td>
+<td style="text-align:right;">
+3
+</td>
+<td style="text-align:right;">
+-0.02
+</td>
+<td style="text-align:right;">
+0.00
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+13
+</td>
+<td style="text-align:left;">
+Fox
+</td>
+<td style="text-align:right;">
+2006
+</td>
+<td style="text-align:left;">
+Functional Ecology
+</td>
+<td style="text-align:right;">
+20
+</td>
+<td style="text-align:left;">
+males
+</td>
+<td style="text-align:left;">
+Callosobruchus
+</td>
+<td style="text-align:left;">
+maculatus
+</td>
+<td style="text-align:left;">
+insect
+</td>
+<td style="text-align:left;">
+fig. 1A
+</td>
+<td style="text-align:left;">
+mg Mass loss (Male Investment)
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:right;">
+NA
+</td>
+<td style="text-align:right;">
+25
+</td>
+<td style="text-align:right;">
+30
+</td>
+<td style="text-align:right;">
+0.34
+</td>
+<td style="text-align:right;">
+0.08
+</td>
+<td style="text-align:right;">
+31
+</td>
+<td style="text-align:right;">
+0.30
+</td>
+<td style="text-align:right;">
+0.09
+</td>
+<td style="text-align:right;">
+27
+</td>
+<td style="text-align:left;">
+natural
+</td>
+<td style="text-align:left;">
+lifetime
+</td>
+<td style="text-align:left;">
+ecto
+</td>
+<td style="text-align:left;">
+indirect
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:left;">
+Burkina Faso_Cowpea
+</td>
+<td style="text-align:left;">
+Callosobruchus_maculatus
+</td>
+<td style="text-align:right;">
+4
+</td>
+<td style="text-align:right;">
+-0.14
+</td>
+<td style="text-align:right;">
+0.00
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+13
+</td>
+<td style="text-align:left;">
+Fox
+</td>
+<td style="text-align:right;">
+2006
+</td>
+<td style="text-align:left;">
+Functional Ecology
+</td>
+<td style="text-align:right;">
+20
+</td>
+<td style="text-align:left;">
+males
+</td>
+<td style="text-align:left;">
+Callosobruchus
+</td>
+<td style="text-align:left;">
+maculatus
+</td>
+<td style="text-align:left;">
+insect
+</td>
+<td style="text-align:left;">
+fig. 1A
+</td>
+<td style="text-align:left;">
+mg Mass loss (Male Investment)
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:right;">
+NA
+</td>
+<td style="text-align:right;">
+25
+</td>
+<td style="text-align:right;">
+30
+</td>
+<td style="text-align:right;">
+0.33
+</td>
+<td style="text-align:right;">
+0.07
+</td>
+<td style="text-align:right;">
+31
+</td>
+<td style="text-align:right;">
+0.29
+</td>
+<td style="text-align:right;">
+0.06
+</td>
+<td style="text-align:right;">
+27
+</td>
+<td style="text-align:left;">
+natural
+</td>
+<td style="text-align:left;">
+lifetime
+</td>
+<td style="text-align:left;">
+ecto
+</td>
+<td style="text-align:left;">
+indirect
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:left;">
+Burkina Faso_Mung
+</td>
+<td style="text-align:left;">
+Callosobruchus_maculatus
+</td>
+<td style="text-align:right;">
+5
+</td>
+<td style="text-align:right;">
+-0.13
+</td>
+<td style="text-align:right;">
+0.00
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+13
+</td>
+<td style="text-align:left;">
+Fox
+</td>
+<td style="text-align:right;">
+2006
+</td>
+<td style="text-align:left;">
+Functional Ecology
+</td>
+<td style="text-align:right;">
+20
+</td>
+<td style="text-align:left;">
+males
+</td>
+<td style="text-align:left;">
+Callosobruchus
+</td>
+<td style="text-align:left;">
+maculatus
+</td>
+<td style="text-align:left;">
+insect
+</td>
+<td style="text-align:left;">
+fig. 1A
+</td>
+<td style="text-align:left;">
+mg Mass loss (Male Investment)
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:right;">
+NA
+</td>
+<td style="text-align:right;">
+25
+</td>
+<td style="text-align:right;">
+30
+</td>
+<td style="text-align:right;">
+0.31
+</td>
+<td style="text-align:right;">
+0.06
+</td>
+<td style="text-align:right;">
+31
+</td>
+<td style="text-align:right;">
+0.26
+</td>
+<td style="text-align:right;">
+0.06
+</td>
+<td style="text-align:right;">
+26
+</td>
+<td style="text-align:left;">
+natural
+</td>
+<td style="text-align:left;">
+lifetime
+</td>
+<td style="text-align:left;">
+ecto
+</td>
+<td style="text-align:left;">
+indirect
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:left;">
+South India_Azuki
+</td>
+<td style="text-align:left;">
+Callosobruchus_maculatus
+</td>
+<td style="text-align:right;">
+6
+</td>
+<td style="text-align:right;">
+-0.16
+</td>
+<td style="text-align:right;">
+0.00
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+13
+</td>
+<td style="text-align:left;">
+Fox
+</td>
+<td style="text-align:right;">
+2006
+</td>
+<td style="text-align:left;">
+Functional Ecology
+</td>
+<td style="text-align:right;">
+20
+</td>
+<td style="text-align:left;">
+males
+</td>
+<td style="text-align:left;">
+Callosobruchus
+</td>
+<td style="text-align:left;">
+maculatus
+</td>
+<td style="text-align:left;">
+insect
+</td>
+<td style="text-align:left;">
+fig. 1A
+</td>
+<td style="text-align:left;">
+mg Mass loss (Male Investment)
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:right;">
+NA
+</td>
+<td style="text-align:right;">
+25
+</td>
+<td style="text-align:right;">
+30
+</td>
+<td style="text-align:right;">
+0.26
+</td>
+<td style="text-align:right;">
+0.08
+</td>
+<td style="text-align:right;">
+31
+</td>
+<td style="text-align:right;">
+0.21
+</td>
+<td style="text-align:right;">
+0.06
+</td>
+<td style="text-align:right;">
+26
+</td>
+<td style="text-align:left;">
+natural
+</td>
+<td style="text-align:left;">
+lifetime
+</td>
+<td style="text-align:left;">
+ecto
+</td>
+<td style="text-align:left;">
+indirect
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:left;">
+South India_Cowpea
+</td>
+<td style="text-align:left;">
+Callosobruchus_maculatus
+</td>
+<td style="text-align:right;">
+7
+</td>
+<td style="text-align:right;">
+-0.22
+</td>
+<td style="text-align:right;">
+0.01
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+24
+</td>
+<td style="text-align:left;">
+Mehlis
+</td>
+<td style="text-align:right;">
+2014
+</td>
+<td style="text-align:left;">
+Evolutionary Ecology
+</td>
+<td style="text-align:right;">
+28
+</td>
+<td style="text-align:left;">
+males
+</td>
+<td style="text-align:left;">
+Gasterosteus
+</td>
+<td style="text-align:left;">
+aculeatus
+</td>
+<td style="text-align:left;">
+fish
+</td>
+<td style="text-align:left;">
+fig. 1
+</td>
+<td style="text-align:left;">
+Mean Fertilization Success at 100,000 sperm (%)
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+NA
+</td>
+<td style="text-align:right;">
+15
+</td>
+<td style="text-align:right;">
+25
+</td>
+<td style="text-align:right;">
+37.90
+</td>
+<td style="text-align:right;">
+28.98
+</td>
+<td style="text-align:right;">
+20
+</td>
+<td style="text-align:right;">
+60.69
+</td>
+<td style="text-align:right;">
+36.05
+</td>
+<td style="text-align:right;">
+20
+</td>
+<td style="text-align:left;">
+natural
+</td>
+<td style="text-align:left;">
+adults
+</td>
+<td style="text-align:left;">
+ecto
+</td>
+<td style="text-align:left;">
+indirect
+</td>
+<td style="text-align:right;">
+2
+</td>
+<td style="text-align:left;">
+</td>
+<td style="text-align:left;">
+Gasterosteus_aculeatus
+</td>
+<td style="text-align:right;">
+8
+</td>
+<td style="text-align:right;">
+0.47
+</td>
+<td style="text-align:right;">
+0.05
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+24
+</td>
+<td style="text-align:left;">
+Mehlis
+</td>
+<td style="text-align:right;">
+2014
+</td>
+<td style="text-align:left;">
+Evolutionary Ecology
+</td>
+<td style="text-align:right;">
+28
+</td>
+<td style="text-align:left;">
+males
+</td>
+<td style="text-align:left;">
+Gasterosteus
+</td>
+<td style="text-align:left;">
+aculeatus
+</td>
+<td style="text-align:left;">
+fish
+</td>
+<td style="text-align:left;">
+fig. 1
+</td>
+<td style="text-align:left;">
+Mean Fertilization Success at 1,000,000 sperm (%)
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+NA
+</td>
+<td style="text-align:right;">
+15
+</td>
+<td style="text-align:right;">
+25
+</td>
+<td style="text-align:right;">
+89.00
+</td>
+<td style="text-align:right;">
+14.28
+</td>
+<td style="text-align:right;">
+20
+</td>
+<td style="text-align:right;">
+77.36
+</td>
+<td style="text-align:right;">
+29.39
+</td>
+<td style="text-align:right;">
+20
+</td>
+<td style="text-align:left;">
+natural
+</td>
+<td style="text-align:left;">
+adults
+</td>
+<td style="text-align:left;">
+ecto
+</td>
+<td style="text-align:left;">
+indirect
+</td>
+<td style="text-align:right;">
+2
+</td>
+<td style="text-align:left;">
+</td>
+<td style="text-align:left;">
+Gasterosteus_aculeatus
+</td>
+<td style="text-align:right;">
+9
+</td>
+<td style="text-align:right;">
+-0.14
+</td>
+<td style="text-align:right;">
+0.01
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+24
+</td>
+<td style="text-align:left;">
+Mehlis
+</td>
+<td style="text-align:right;">
+2014
+</td>
+<td style="text-align:left;">
+Evolutionary Ecology
+</td>
+<td style="text-align:right;">
+28
+</td>
+<td style="text-align:left;">
+males
+</td>
+<td style="text-align:left;">
+Gasterosteus
+</td>
+<td style="text-align:left;">
+aculeatus
+</td>
+<td style="text-align:left;">
+fish
+</td>
+<td style="text-align:left;">
+fig. 2A
+</td>
+<td style="text-align:left;">
+Sperm Velocity (PCA)
+</td>
+<td style="text-align:right;">
+2
+</td>
+<td style="text-align:right;">
+NA
+</td>
+<td style="text-align:right;">
+15
+</td>
+<td style="text-align:right;">
+25
+</td>
+<td style="text-align:right;">
+-0.01
+</td>
+<td style="text-align:right;">
+1.35
+</td>
+<td style="text-align:right;">
+12
+</td>
+<td style="text-align:right;">
+0.69
+</td>
+<td style="text-align:right;">
+1.87
+</td>
+<td style="text-align:right;">
+12
+</td>
+<td style="text-align:left;">
+natural
+</td>
+<td style="text-align:left;">
+adults
+</td>
+<td style="text-align:left;">
+ecto
+</td>
+<td style="text-align:left;">
+indirect
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:left;">
+</td>
+<td style="text-align:left;">
+Gasterosteus_aculeatus
+</td>
+<td style="text-align:right;">
+10
+</td>
+<td style="text-align:right;">
+NA
+</td>
+<td style="text-align:right;">
+NA
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+24
+</td>
+<td style="text-align:left;">
+Mehlis
+</td>
+<td style="text-align:right;">
+2014
+</td>
+<td style="text-align:left;">
+Evolutionary Ecology
+</td>
+<td style="text-align:right;">
+28
+</td>
+<td style="text-align:left;">
+males
+</td>
+<td style="text-align:left;">
+Gasterosteus
+</td>
+<td style="text-align:left;">
+aculeatus
+</td>
+<td style="text-align:left;">
+fish
+</td>
+<td style="text-align:left;">
+fig. 2B
+</td>
+<td style="text-align:left;">
+Sperm Linearity (PCA)
+</td>
+<td style="text-align:right;">
+2
+</td>
+<td style="text-align:right;">
+NA
+</td>
+<td style="text-align:right;">
+15
+</td>
+<td style="text-align:right;">
+25
+</td>
+<td style="text-align:right;">
+0.48
+</td>
+<td style="text-align:right;">
+1.36
+</td>
+<td style="text-align:right;">
+12
+</td>
+<td style="text-align:right;">
+0.68
+</td>
+<td style="text-align:right;">
+1.85
+</td>
+<td style="text-align:right;">
+12
+</td>
+<td style="text-align:left;">
+natural
+</td>
+<td style="text-align:left;">
+adults
+</td>
+<td style="text-align:left;">
+ecto
+</td>
+<td style="text-align:left;">
+indirect
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:left;">
+</td>
+<td style="text-align:left;">
+Gasterosteus_aculeatus
+</td>
+<td style="text-align:right;">
+11
+</td>
+<td style="text-align:right;">
+0.35
+</td>
+<td style="text-align:right;">
+1.27
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+24
+</td>
+<td style="text-align:left;">
+Mehlis
+</td>
+<td style="text-align:right;">
+2014
+</td>
+<td style="text-align:left;">
+Evolutionary Ecology
+</td>
+<td style="text-align:right;">
+28
+</td>
+<td style="text-align:left;">
+males
+</td>
+<td style="text-align:left;">
+Gasterosteus
+</td>
+<td style="text-align:left;">
+aculeatus
+</td>
+<td style="text-align:left;">
+fish
+</td>
+<td style="text-align:left;">
+fig. 2C
+</td>
+<td style="text-align:left;">
+Mean Motile Sperm (%)
+</td>
+<td style="text-align:right;">
+2
+</td>
+<td style="text-align:right;">
+NA
+</td>
+<td style="text-align:right;">
+15
+</td>
+<td style="text-align:right;">
+25
+</td>
+<td style="text-align:right;">
+30.99
+</td>
+<td style="text-align:right;">
+12.71
+</td>
+<td style="text-align:right;">
+12
+</td>
+<td style="text-align:right;">
+24.05
+</td>
+<td style="text-align:right;">
+10.82
+</td>
+<td style="text-align:right;">
+12
+</td>
+<td style="text-align:left;">
+natural
+</td>
+<td style="text-align:left;">
+adults
+</td>
+<td style="text-align:left;">
+ecto
+</td>
+<td style="text-align:left;">
+indirect
+</td>
+<td style="text-align:right;">
+2
+</td>
+<td style="text-align:left;">
+</td>
+<td style="text-align:left;">
+Gasterosteus_aculeatus
+</td>
+<td style="text-align:right;">
+12
+</td>
+<td style="text-align:right;">
+-0.25
+</td>
+<td style="text-align:right;">
+0.03
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+25
+</td>
+<td style="text-align:left;">
+Nguyen
+</td>
+<td style="text-align:right;">
+2013
+</td>
+<td style="text-align:left;">
+Journal of Insect Physiology
+</td>
+<td style="text-align:right;">
+59
+</td>
+<td style="text-align:left;">
+males
+</td>
+<td style="text-align:left;">
+Anisopteromalus
+</td>
+<td style="text-align:left;">
+calandrae
+</td>
+<td style="text-align:left;">
+insect
+</td>
+<td style="text-align:left;">
+fig. 2
+</td>
+<td style="text-align:left;">
+Number of Sperm in Vesicles
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:right;">
+NA
+</td>
+<td style="text-align:right;">
+30
+</td>
+<td style="text-align:right;">
+36
+</td>
+<td style="text-align:right;">
+3202.99
+</td>
+<td style="text-align:right;">
+1211.47
+</td>
+<td style="text-align:right;">
+56
+</td>
+<td style="text-align:right;">
+1424.85
+</td>
+<td style="text-align:right;">
+1295.70
+</td>
+<td style="text-align:right;">
+30
+</td>
+<td style="text-align:left;">
+stress
+</td>
+<td style="text-align:left;">
+early
+</td>
+<td style="text-align:left;">
+ecto
+</td>
+<td style="text-align:left;">
+indirect
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:left;">
+</td>
+<td style="text-align:left;">
+Anisopteromalus_calandrae
+</td>
+<td style="text-align:right;">
+13
+</td>
+<td style="text-align:right;">
+-0.81
+</td>
+<td style="text-align:right;">
+0.03
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+40
+</td>
+<td style="text-align:left;">
+Wilson
+</td>
+<td style="text-align:right;">
+2005
+</td>
+<td style="text-align:left;">
+Animal Behaviour
+</td>
+<td style="text-align:right;">
+70
+</td>
+<td style="text-align:left;">
+males
+</td>
+<td style="text-align:left;">
+Gambusia
+</td>
+<td style="text-align:left;">
+holbrooki
+</td>
+<td style="text-align:left;">
+fish
+</td>
+<td style="text-align:left;">
+fig. 4
+</td>
+<td style="text-align:left;">
+Number of Copulations Per Minute
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:right;">
+NA
+</td>
+<td style="text-align:right;">
+18
+</td>
+<td style="text-align:right;">
+26
+</td>
+<td style="text-align:right;">
+0.32
+</td>
+<td style="text-align:right;">
+0.25
+</td>
+<td style="text-align:right;">
+14
+</td>
+<td style="text-align:right;">
+0.23
+</td>
+<td style="text-align:right;">
+0.15
+</td>
+<td style="text-align:right;">
+14
+</td>
+<td style="text-align:left;">
+natural
+</td>
+<td style="text-align:left;">
+adults
+</td>
+<td style="text-align:left;">
+ecto
+</td>
+<td style="text-align:left;">
+direct
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:left;">
+</td>
+<td style="text-align:left;">
+Gambusia_holbrooki
+</td>
+<td style="text-align:right;">
+14
+</td>
+<td style="text-align:right;">
+-0.34
+</td>
+<td style="text-align:right;">
+0.08
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+32
+</td>
+<td style="text-align:left;">
+Saxon
+</td>
+<td style="text-align:right;">
+2018
+</td>
+<td style="text-align:left;">
+Journal of Evolutionary Bilogy
+</td>
+<td style="text-align:right;">
+31
+</td>
+<td style="text-align:left;">
+males
+</td>
+<td style="text-align:left;">
+Drosophila
+</td>
+<td style="text-align:left;">
+birchii
+</td>
+<td style="text-align:left;">
+insect
+</td>
+<td style="text-align:left;">
+fig. 1I
+</td>
+<td style="text-align:left;">
+Total number of offspring
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:right;">
+NA
+</td>
+<td style="text-align:right;">
+17
+</td>
+<td style="text-align:right;">
+24
+</td>
+<td style="text-align:right;">
+100.44
+</td>
+<td style="text-align:right;">
+74.35
+</td>
+<td style="text-align:right;">
+20
+</td>
+<td style="text-align:right;">
+172.59
+</td>
+<td style="text-align:right;">
+87.26
+</td>
+<td style="text-align:right;">
+20
+</td>
+<td style="text-align:left;">
+natural
+</td>
+<td style="text-align:left;">
+lifetime
+</td>
+<td style="text-align:left;">
+ecto
+</td>
+<td style="text-align:left;">
+direct
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:left;">
+</td>
+<td style="text-align:left;">
+Drosophila_birchii
+</td>
+<td style="text-align:right;">
+15
+</td>
+<td style="text-align:right;">
+0.54
+</td>
+<td style="text-align:right;">
+0.04
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+23
+</td>
+<td style="text-align:left;">
+Martinossi-Allibert
+</td>
+<td style="text-align:right;">
+2017
+</td>
+<td style="text-align:left;">
+Journal of Evolutionary Biology
+</td>
+<td style="text-align:right;">
+30
+</td>
+<td style="text-align:left;">
+males
+</td>
+<td style="text-align:left;">
+Callosobruchus
+</td>
+<td style="text-align:left;">
+maculatus
+</td>
+<td style="text-align:left;">
+insect
+</td>
+<td style="text-align:left;">
+fig. 2
+</td>
+<td style="text-align:left;">
+Total fitness (survival &amp; LRS)
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:right;">
+NA
+</td>
+<td style="text-align:right;">
+29
+</td>
+<td style="text-align:right;">
+37
+</td>
+<td style="text-align:right;">
+1.01
+</td>
+<td style="text-align:right;">
+0.37
+</td>
+<td style="text-align:right;">
+14
+</td>
+<td style="text-align:right;">
+0.08
+</td>
+<td style="text-align:right;">
+0.07
+</td>
+<td style="text-align:right;">
+14
+</td>
+<td style="text-align:left;">
+stress
+</td>
+<td style="text-align:left;">
+juvenile
+</td>
+<td style="text-align:left;">
+ecto
+</td>
+<td style="text-align:left;">
+direct
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:left;">
+</td>
+<td style="text-align:left;">
+Callosobruchus_maculatus
+</td>
+<td style="text-align:right;">
+16
+</td>
+<td style="text-align:right;">
+-2.55
+</td>
+<td style="text-align:right;">
+0.07
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+28
+</td>
+<td style="text-align:left;">
+Plesnar-Bielak
+</td>
+<td style="text-align:right;">
+2018
+</td>
+<td style="text-align:left;">
+BMC Evolutionary Biology
+</td>
+<td style="text-align:right;">
+18
+</td>
+<td style="text-align:left;">
+males
+</td>
+<td style="text-align:left;">
+Rhizoglyphus
+</td>
+<td style="text-align:left;">
+robini
+</td>
+<td style="text-align:left;">
+insect
+</td>
+<td style="text-align:left;">
+fig. 4
+</td>
+<td style="text-align:left;">
+Percentage of egg sired by fighers (reproductive success)
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:right;">
+NA
+</td>
+<td style="text-align:right;">
+18
+</td>
+<td style="text-align:right;">
+24
+</td>
+<td style="text-align:right;">
+49.00
+</td>
+<td style="text-align:right;">
+29.89
+</td>
+<td style="text-align:right;">
+37
+</td>
+<td style="text-align:right;">
+41.10
+</td>
+<td style="text-align:right;">
+33.38
+</td>
+<td style="text-align:right;">
+16
+</td>
+<td style="text-align:left;">
+natural
+</td>
+<td style="text-align:left;">
+lifetime
+</td>
+<td style="text-align:left;">
+ecto
+</td>
+<td style="text-align:left;">
+direct
+</td>
+<td style="text-align:right;">
+2
+</td>
+<td style="text-align:left;">
+</td>
+<td style="text-align:left;">
+Rhizoglyphus_robini
+</td>
+<td style="text-align:right;">
+17
+</td>
+<td style="text-align:right;">
+-0.18
+</td>
+<td style="text-align:right;">
+0.05
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+30
+</td>
+<td style="text-align:left;">
+Sambucetti
+</td>
+<td style="text-align:right;">
+2014
+</td>
+<td style="text-align:left;">
+Entomologia Experimentalis et Applicata
+</td>
+<td style="text-align:right;">
+154
+</td>
+<td style="text-align:left;">
+males
+</td>
+<td style="text-align:left;">
+Drosophila
+</td>
+<td style="text-align:left;">
+buzzatii
+</td>
+<td style="text-align:left;">
+insect
+</td>
+<td style="text-align:left;">
+fig. 2
+</td>
+<td style="text-align:left;">
+Proportion of mated flies
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:right;">
+NA
+</td>
+<td style="text-align:right;">
+25
+</td>
+<td style="text-align:right;">
+33
+</td>
+<td style="text-align:right;">
+0.59
+</td>
+<td style="text-align:right;">
+0.17
+</td>
+<td style="text-align:right;">
+6
+</td>
+<td style="text-align:right;">
+0.36
+</td>
+<td style="text-align:right;">
+0.16
+</td>
+<td style="text-align:right;">
+6
+</td>
+<td style="text-align:left;">
+stress
+</td>
+<td style="text-align:left;">
+adults
+</td>
+<td style="text-align:left;">
+ecto
+</td>
+<td style="text-align:left;">
+direct
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:left;">
+Chumbicha - low
+</td>
+<td style="text-align:left;">
+Drosophila_buzzatii
+</td>
+<td style="text-align:right;">
+18
+</td>
+<td style="text-align:right;">
+-0.50
+</td>
+<td style="text-align:right;">
+0.05
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+30
+</td>
+<td style="text-align:left;">
+Sambucetti
+</td>
+<td style="text-align:right;">
+2014
+</td>
+<td style="text-align:left;">
+Entomologia Experimentalis et Applicata
+</td>
+<td style="text-align:right;">
+154
+</td>
+<td style="text-align:left;">
+males
+</td>
+<td style="text-align:left;">
+Drosophila
+</td>
+<td style="text-align:left;">
+buzzatii
+</td>
+<td style="text-align:left;">
+insect
+</td>
+<td style="text-align:left;">
+fig. 2
+</td>
+<td style="text-align:left;">
+Proportion of mated flies
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:right;">
+NA
+</td>
+<td style="text-align:right;">
+25
+</td>
+<td style="text-align:right;">
+33
+</td>
+<td style="text-align:right;">
+0.41
+</td>
+<td style="text-align:right;">
+0.17
+</td>
+<td style="text-align:right;">
+6
+</td>
+<td style="text-align:right;">
+0.64
+</td>
+<td style="text-align:right;">
+0.15
+</td>
+<td style="text-align:right;">
+6
+</td>
+<td style="text-align:left;">
+stress
+</td>
+<td style="text-align:left;">
+adults
+</td>
+<td style="text-align:left;">
+ecto
+</td>
+<td style="text-align:left;">
+direct
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:left;">
+Quilmes - high
+</td>
+<td style="text-align:left;">
+Drosophila_buzzatii
+</td>
+<td style="text-align:right;">
+19
+</td>
+<td style="text-align:right;">
+0.46
+</td>
+<td style="text-align:right;">
+0.04
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+37
+</td>
+<td style="text-align:left;">
+Vasudeva
+</td>
+<td style="text-align:right;">
+2014
+</td>
+<td style="text-align:left;">
+Journal of Evolutionary Biology
+</td>
+<td style="text-align:right;">
+27
+</td>
+<td style="text-align:left;">
+males
+</td>
+<td style="text-align:left;">
+Callosobruchus
+</td>
+<td style="text-align:left;">
+maculatus
+</td>
+<td style="text-align:left;">
+insect
+</td>
+<td style="text-align:left;">
+fig. 2
+</td>
+<td style="text-align:left;">
+Sperm number (1000x)
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+NA
+</td>
+<td style="text-align:right;">
+25
+</td>
+<td style="text-align:right;">
+33
+</td>
+<td style="text-align:right;">
+69.23
+</td>
+<td style="text-align:right;">
+26.18
+</td>
+<td style="text-align:right;">
+18
+</td>
+<td style="text-align:right;">
+37.80
+</td>
+<td style="text-align:right;">
+24.84
+</td>
+<td style="text-align:right;">
+18
+</td>
+<td style="text-align:left;">
+natural
+</td>
+<td style="text-align:left;">
+lifetime
+</td>
+<td style="text-align:left;">
+ecto
+</td>
+<td style="text-align:left;">
+indirect
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:left;">
+replicate 1
+</td>
+<td style="text-align:left;">
+Callosobruchus_maculatus
+</td>
+<td style="text-align:right;">
+20
+</td>
+<td style="text-align:right;">
+-0.60
+</td>
+<td style="text-align:right;">
+0.03
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+37
+</td>
+<td style="text-align:left;">
+Vasudeva
+</td>
+<td style="text-align:right;">
+2014
+</td>
+<td style="text-align:left;">
+Journal of Evolutionary Biology
+</td>
+<td style="text-align:right;">
+27
+</td>
+<td style="text-align:left;">
+males
+</td>
+<td style="text-align:left;">
+Callosobruchus
+</td>
+<td style="text-align:left;">
+maculatus
+</td>
+<td style="text-align:left;">
+insect
+</td>
+<td style="text-align:left;">
+fig. 2
+</td>
+<td style="text-align:left;">
+Sperm Length (mm)
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+NA
+</td>
+<td style="text-align:right;">
+25
+</td>
+<td style="text-align:right;">
+33
+</td>
+<td style="text-align:right;">
+0.17
+</td>
+<td style="text-align:right;">
+0.01
+</td>
+<td style="text-align:right;">
+18
+</td>
+<td style="text-align:right;">
+0.17
+</td>
+<td style="text-align:right;">
+0.01
+</td>
+<td style="text-align:right;">
+18
+</td>
+<td style="text-align:left;">
+natural
+</td>
+<td style="text-align:left;">
+lifetime
+</td>
+<td style="text-align:left;">
+ecto
+</td>
+<td style="text-align:left;">
+indirect
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:left;">
+replicate 1
+</td>
+<td style="text-align:left;">
+Callosobruchus_maculatus
+</td>
+<td style="text-align:right;">
+21
+</td>
+<td style="text-align:right;">
+0.00
+</td>
+<td style="text-align:right;">
+0.00
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+37
+</td>
+<td style="text-align:left;">
+Vasudeva
+</td>
+<td style="text-align:right;">
+2014
+</td>
+<td style="text-align:left;">
+Journal of Evolutionary Biology
+</td>
+<td style="text-align:right;">
+27
+</td>
+<td style="text-align:left;">
+males
+</td>
+<td style="text-align:left;">
+Callosobruchus
+</td>
+<td style="text-align:left;">
+maculatus
+</td>
+<td style="text-align:left;">
+insect
+</td>
+<td style="text-align:left;">
+fig. 2
+</td>
+<td style="text-align:left;">
+Sperm number (1000x)
+</td>
+<td style="text-align:right;">
+2
+</td>
+<td style="text-align:right;">
+NA
+</td>
+<td style="text-align:right;">
+25
+</td>
+<td style="text-align:right;">
+33
+</td>
+<td style="text-align:right;">
+58.33
+</td>
+<td style="text-align:right;">
+48.78
+</td>
+<td style="text-align:right;">
+18
+</td>
+<td style="text-align:right;">
+45.58
+</td>
+<td style="text-align:right;">
+52.70
+</td>
+<td style="text-align:right;">
+18
+</td>
+<td style="text-align:left;">
+natural
+</td>
+<td style="text-align:left;">
+lifetime
+</td>
+<td style="text-align:left;">
+ecto
+</td>
+<td style="text-align:left;">
+indirect
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:left;">
+replicate 2
+</td>
+<td style="text-align:left;">
+Callosobruchus_maculatus
+</td>
+<td style="text-align:right;">
+22
+</td>
+<td style="text-align:right;">
+-0.25
+</td>
+<td style="text-align:right;">
+0.11
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+37
+</td>
+<td style="text-align:left;">
+Vasudeva
+</td>
+<td style="text-align:right;">
+2014
+</td>
+<td style="text-align:left;">
+Journal of Evolutionary Biology
+</td>
+<td style="text-align:right;">
+27
+</td>
+<td style="text-align:left;">
+males
+</td>
+<td style="text-align:left;">
+Callosobruchus
+</td>
+<td style="text-align:left;">
+maculatus
+</td>
+<td style="text-align:left;">
+insect
+</td>
+<td style="text-align:left;">
+fig. 2
+</td>
+<td style="text-align:left;">
+Sperm Length (mm)
+</td>
+<td style="text-align:right;">
+2
+</td>
+<td style="text-align:right;">
+NA
+</td>
+<td style="text-align:right;">
+25
+</td>
+<td style="text-align:right;">
+33
+</td>
+<td style="text-align:right;">
+0.17
+</td>
+<td style="text-align:right;">
+0.01
+</td>
+<td style="text-align:right;">
+18
+</td>
+<td style="text-align:right;">
+0.17
+</td>
+<td style="text-align:right;">
+0.01
+</td>
+<td style="text-align:right;">
+18
+</td>
+<td style="text-align:left;">
+natural
+</td>
+<td style="text-align:left;">
+lifetime
+</td>
+<td style="text-align:left;">
+ecto
+</td>
+<td style="text-align:left;">
+indirect
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:left;">
+replicate 2
+</td>
+<td style="text-align:left;">
+Callosobruchus_maculatus
+</td>
+<td style="text-align:right;">
+23
+</td>
+<td style="text-align:right;">
+-0.02
+</td>
+<td style="text-align:right;">
+0.00
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+41
+</td>
+<td style="text-align:left;">
+Yenisetti
+</td>
+<td style="text-align:right;">
+2006
+</td>
+<td style="text-align:left;">
+Korean Journal of Genetics
+</td>
+<td style="text-align:right;">
+28
+</td>
+<td style="text-align:left;">
+males
+</td>
+<td style="text-align:left;">
+Phorticella
+</td>
+<td style="text-align:left;">
+striata
+</td>
+<td style="text-align:left;">
+insect
+</td>
+<td style="text-align:left;">
+table 1
+</td>
+<td style="text-align:left;">
+Copulation duration
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:right;">
+NA
+</td>
+<td style="text-align:right;">
+15
+</td>
+<td style="text-align:right;">
+29
+</td>
+<td style="text-align:right;">
+186.43
+</td>
+<td style="text-align:right;">
+19.10
+</td>
+<td style="text-align:right;">
+25
+</td>
+<td style="text-align:right;">
+202.06
+</td>
+<td style="text-align:right;">
+38.25
+</td>
+<td style="text-align:right;">
+25
+</td>
+<td style="text-align:left;">
+natural
+</td>
+<td style="text-align:left;">
+adults
+</td>
+<td style="text-align:left;">
+ecto
+</td>
+<td style="text-align:left;">
+indirect
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:left;">
+Mysore
+</td>
+<td style="text-align:left;">
+Phorticella_striata
+</td>
+<td style="text-align:right;">
+24
+</td>
+<td style="text-align:right;">
+0.08
+</td>
+<td style="text-align:right;">
+0.00
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+41
+</td>
+<td style="text-align:left;">
+Yenisetti
+</td>
+<td style="text-align:right;">
+2006
+</td>
+<td style="text-align:left;">
+Korean Journal of Genetics
+</td>
+<td style="text-align:right;">
+28
+</td>
+<td style="text-align:left;">
+males
+</td>
+<td style="text-align:left;">
+Phorticella
+</td>
+<td style="text-align:left;">
+striata
+</td>
+<td style="text-align:left;">
+insect
+</td>
+<td style="text-align:left;">
+table 1
+</td>
+<td style="text-align:left;">
+Copulation duration
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:right;">
+NA
+</td>
+<td style="text-align:right;">
+15
+</td>
+<td style="text-align:right;">
+29
+</td>
+<td style="text-align:right;">
+192.25
+</td>
+<td style="text-align:right;">
+25.70
+</td>
+<td style="text-align:right;">
+25
+</td>
+<td style="text-align:right;">
+229.47
+</td>
+<td style="text-align:right;">
+56.65
+</td>
+<td style="text-align:right;">
+25
+</td>
+<td style="text-align:left;">
+natural
+</td>
+<td style="text-align:left;">
+adults
+</td>
+<td style="text-align:left;">
+ecto
+</td>
+<td style="text-align:left;">
+indirect
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:left;">
+Ahmedabad
+</td>
+<td style="text-align:left;">
+Phorticella_striata
+</td>
+<td style="text-align:right;">
+25
+</td>
+<td style="text-align:right;">
+0.18
+</td>
+<td style="text-align:right;">
+0.00
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+6
+</td>
+<td style="text-align:left;">
+Reeve
+</td>
+<td style="text-align:right;">
+2000
+</td>
+<td style="text-align:left;">
+Journal of Evolutionary Biology
+</td>
+<td style="text-align:right;">
+13
+</td>
+<td style="text-align:left;">
+males
+</td>
+<td style="text-align:left;">
+Drosophila
+</td>
+<td style="text-align:left;">
+melanogaster
+</td>
+<td style="text-align:left;">
+insect
+</td>
+<td style="text-align:left;">
+fig. 2
+</td>
+<td style="text-align:left;">
+Proportion of wild-type progeny sired (fertility)
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:right;">
+NA
+</td>
+<td style="text-align:right;">
+18
+</td>
+<td style="text-align:right;">
+25
+</td>
+<td style="text-align:right;">
+0.20
+</td>
+<td style="text-align:right;">
+0.08
+</td>
+<td style="text-align:right;">
+13
+</td>
+<td style="text-align:right;">
+0.17
+</td>
+<td style="text-align:right;">
+0.04
+</td>
+<td style="text-align:right;">
+13
+</td>
+<td style="text-align:left;">
+natural
+</td>
+<td style="text-align:left;">
+lifetime
+</td>
+<td style="text-align:left;">
+ecto
+</td>
+<td style="text-align:left;">
+direct
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:left;">
+control line 1
+</td>
+<td style="text-align:left;">
+Drosophila_melanogaster
+</td>
+<td style="text-align:right;">
+26
+</td>
+<td style="text-align:right;">
+-0.19
+</td>
+<td style="text-align:right;">
+0.02
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+6
+</td>
+<td style="text-align:left;">
+Reeve
+</td>
+<td style="text-align:right;">
+2000
+</td>
+<td style="text-align:left;">
+Journal of Evolutionary Biology
+</td>
+<td style="text-align:right;">
+13
+</td>
+<td style="text-align:left;">
+males
+</td>
+<td style="text-align:left;">
+Drosophila
+</td>
+<td style="text-align:left;">
+melanogaster
+</td>
+<td style="text-align:left;">
+insect
+</td>
+<td style="text-align:left;">
+fig. 2
+</td>
+<td style="text-align:left;">
+Proportion of wild-type progeny sired (fertility)
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:right;">
+NA
+</td>
+<td style="text-align:right;">
+18
+</td>
+<td style="text-align:right;">
+25
+</td>
+<td style="text-align:right;">
+0.20
+</td>
+<td style="text-align:right;">
+0.14
+</td>
+<td style="text-align:right;">
+13
+</td>
+<td style="text-align:right;">
+0.15
+</td>
+<td style="text-align:right;">
+0.05
+</td>
+<td style="text-align:right;">
+13
+</td>
+<td style="text-align:left;">
+natural
+</td>
+<td style="text-align:left;">
+lifetime
+</td>
+<td style="text-align:left;">
+ecto
+</td>
+<td style="text-align:left;">
+direct
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:left;">
+control line 2
+</td>
+<td style="text-align:left;">
+Drosophila_melanogaster
+</td>
+<td style="text-align:right;">
+27
+</td>
+<td style="text-align:right;">
+-0.29
+</td>
+<td style="text-align:right;">
+0.05
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+6
+</td>
+<td style="text-align:left;">
+Reeve
+</td>
+<td style="text-align:right;">
+2000
+</td>
+<td style="text-align:left;">
+Journal of Evolutionary Biology
+</td>
+<td style="text-align:right;">
+13
+</td>
+<td style="text-align:left;">
+males
+</td>
+<td style="text-align:left;">
+Drosophila
+</td>
+<td style="text-align:left;">
+melanogaster
+</td>
+<td style="text-align:left;">
+insect
+</td>
+<td style="text-align:left;">
+fig. 2
+</td>
+<td style="text-align:left;">
+Proportion of wild-type progeny sired (fertility)
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:right;">
+NA
+</td>
+<td style="text-align:right;">
+18
+</td>
+<td style="text-align:right;">
+25
+</td>
+<td style="text-align:right;">
+0.16
+</td>
+<td style="text-align:right;">
+0.08
+</td>
+<td style="text-align:right;">
+13
+</td>
+<td style="text-align:right;">
+0.14
+</td>
+<td style="text-align:right;">
+0.04
+</td>
+<td style="text-align:right;">
+13
+</td>
+<td style="text-align:left;">
+natural
+</td>
+<td style="text-align:left;">
+lifetime
+</td>
+<td style="text-align:left;">
+ecto
+</td>
+<td style="text-align:left;">
+direct
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:left;">
+control line 3
+</td>
+<td style="text-align:left;">
+Drosophila_melanogaster
+</td>
+<td style="text-align:right;">
+28
+</td>
+<td style="text-align:right;">
+-0.13
+</td>
+<td style="text-align:right;">
+0.03
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+7
+</td>
+<td style="text-align:left;">
+Polak
+</td>
+<td style="text-align:right;">
+2012
+</td>
+<td style="text-align:left;">
+Journal of Evolutionary Biology
+</td>
+<td style="text-align:right;">
+25
+</td>
+<td style="text-align:left;">
+males
+</td>
+<td style="text-align:left;">
+Drosophila
+</td>
+<td style="text-align:left;">
+bipectinata
+</td>
+<td style="text-align:left;">
+insect
+</td>
+<td style="text-align:left;">
+table 3
+</td>
+<td style="text-align:left;">
+CT1 Comb Number
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:right;">
+NA
+</td>
+<td style="text-align:right;">
+25
+</td>
+<td style="text-align:right;">
+29
+</td>
+<td style="text-align:right;">
+5.84
+</td>
+<td style="text-align:right;">
+0.67
+</td>
+<td style="text-align:right;">
+134
+</td>
+<td style="text-align:right;">
+5.74
+</td>
+<td style="text-align:right;">
+0.94
+</td>
+<td style="text-align:right;">
+134
+</td>
+<td style="text-align:left;">
+natural
+</td>
+<td style="text-align:left;">
+lifetime
+</td>
+<td style="text-align:left;">
+ecto
+</td>
+<td style="text-align:left;">
+indirect
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:left;">
+</td>
+<td style="text-align:left;">
+Drosophila_bipectinata
+</td>
+<td style="text-align:right;">
+29
+</td>
+<td style="text-align:right;">
+-0.02
+</td>
+<td style="text-align:right;">
+0.00
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+17
+</td>
+<td style="text-align:left;">
+Fairbairn
+</td>
+<td style="text-align:right;">
+2005
+</td>
+<td style="text-align:left;">
+The American Naturalist
+</td>
+<td style="text-align:right;">
+166
+</td>
+<td style="text-align:left;">
+males
+</td>
+<td style="text-align:left;">
+Aquarius
+</td>
+<td style="text-align:left;">
+remigis
+</td>
+<td style="text-align:left;">
+insect
+</td>
+<td style="text-align:left;">
+fig. 5
+</td>
+<td style="text-align:left;">
+log(genital length)
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:right;">
+NA
+</td>
+<td style="text-align:right;">
+20
+</td>
+<td style="text-align:right;">
+25
+</td>
+<td style="text-align:right;">
+0.40
+</td>
+<td style="text-align:right;">
+0.05
+</td>
+<td style="text-align:right;">
+11
+</td>
+<td style="text-align:right;">
+0.39
+</td>
+<td style="text-align:right;">
+0.03
+</td>
+<td style="text-align:right;">
+11
+</td>
+<td style="text-align:left;">
+natural
+</td>
+<td style="text-align:left;">
+lifetime
+</td>
+<td style="text-align:left;">
+ecto
+</td>
+<td style="text-align:left;">
+indirect
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:left;">
+SW population
+</td>
+<td style="text-align:left;">
+Aquarius_remigis
+</td>
+<td style="text-align:right;">
+30
+</td>
+<td style="text-align:right;">
+-0.01
+</td>
+<td style="text-align:right;">
+0.00
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+17
+</td>
+<td style="text-align:left;">
+Fairbairn
+</td>
+<td style="text-align:right;">
+2005
+</td>
+<td style="text-align:left;">
+The American Naturalist
+</td>
+<td style="text-align:right;">
+166
+</td>
+<td style="text-align:left;">
+males
+</td>
+<td style="text-align:left;">
+Aquarius
+</td>
+<td style="text-align:left;">
+remigis
+</td>
+<td style="text-align:left;">
+insect
+</td>
+<td style="text-align:left;">
+fig. 5
+</td>
+<td style="text-align:left;">
+log(genital length)
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:right;">
+NA
+</td>
+<td style="text-align:right;">
+20
+</td>
+<td style="text-align:right;">
+25
+</td>
+<td style="text-align:right;">
+0.40
+</td>
+<td style="text-align:right;">
+0.01
+</td>
+<td style="text-align:right;">
+11
+</td>
+<td style="text-align:right;">
+0.40
+</td>
+<td style="text-align:right;">
+0.01
+</td>
+<td style="text-align:right;">
+11
+</td>
+<td style="text-align:left;">
+natural
+</td>
+<td style="text-align:left;">
+lifetime
+</td>
+<td style="text-align:left;">
+ecto
+</td>
+<td style="text-align:left;">
+indirect
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:left;">
+DLM population
+</td>
+<td style="text-align:left;">
+Aquarius_remigis
+</td>
+<td style="text-align:right;">
+31
+</td>
+<td style="text-align:right;">
+-0.01
+</td>
+<td style="text-align:right;">
+0.00
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+17
+</td>
+<td style="text-align:left;">
+Fairbairn
+</td>
+<td style="text-align:right;">
+2005
+</td>
+<td style="text-align:left;">
+The American Naturalist
+</td>
+<td style="text-align:right;">
+166
+</td>
+<td style="text-align:left;">
+males
+</td>
+<td style="text-align:left;">
+Aquarius
+</td>
+<td style="text-align:left;">
+remigis
+</td>
+<td style="text-align:left;">
+insect
+</td>
+<td style="text-align:left;">
+fig. 5
+</td>
+<td style="text-align:left;">
+log(genital length)
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:right;">
+NA
+</td>
+<td style="text-align:right;">
+20
+</td>
+<td style="text-align:right;">
+25
+</td>
+<td style="text-align:right;">
+0.48
+</td>
+<td style="text-align:right;">
+0.02
+</td>
+<td style="text-align:right;">
+11
+</td>
+<td style="text-align:right;">
+0.46
+</td>
+<td style="text-align:right;">
+0.05
+</td>
+<td style="text-align:right;">
+11
+</td>
+<td style="text-align:left;">
+natural
+</td>
+<td style="text-align:left;">
+lifetime
+</td>
+<td style="text-align:left;">
+ecto
+</td>
+<td style="text-align:left;">
+indirect
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:left;">
+SCI population
+</td>
+<td style="text-align:left;">
+Aquarius_remigis
+</td>
+<td style="text-align:right;">
+32
+</td>
+<td style="text-align:right;">
+-0.03
+</td>
+<td style="text-align:right;">
+0.00
+</td>
+</tr>
+</tbody>
+</table>
+</div>
 <p>We can also have a look at the mean-variance relationship in these data:</p>
 <pre class="r"><code>        p1 = ggplot(data, aes(x=log(X_T1), y=log(Err_T1), col = sex)) + 
         geom_point(size=2) + 
