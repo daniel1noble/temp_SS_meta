@@ -1,0 +1,306 @@
+---
+title: "Meta-analysis on the effects of temperature on sexual selection"
+output:
+  html_document:
+    code_folding: hide
+    theme: united
+    toc: yes
+    toc_float: yes
+author: García-Roa, R., Garcia-Gonzalez, F., Noble, D.W.A. & Carazo, P.
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+---
+
+```{r,echo=FALSE, cache=FALSE}
+  ## numbers >= 10^5 will be denoted in scientific notation,
+  ## and rounded to 2 digits
+  options(digits = 2)
+```
+
+# Setting up and Data Exploration
+### Load Packages
+```{r echo = TRUE, eval = TRUE}
+    pacman::p_load(metafor, MCMCglmm, tidyverse, rotl, magrittr, kableExtra, rmarkdown, gridExtra, psych)
+```
+
+### Load Data
+
+First, lets load the data into R:
+
+```{r echo = TRUE, eval = TRUE}
+    data <- read.csv("../data_Temp_SS.csv", stringsAsFactors = FALSE)
+```
+
+Now that it is in we can view the data structure. Note that all factors should be characters. Also, we need to do some cleaning of the data before continuing as well as a little data exploration to check the data for consistencies, such as spelling mistakes etc.
+
+```{r echo = TRUE, eval = TRUE}
+    str(data)
+```
+
+There are clearly a few things that need to be sorted. First, we need to convert all SE estimates to their corresponding SD. We can apply a couple simple functions to do this. We can then subset the data out for males and females, we'll run a subset analysis for each dataset as we expect very strong differences between these effect sizes, and potentially differences in how moderators affect the effects.
+
+```{r echo = TRUE, eval = TRUE}
+    # Convert everything to SD from SE
+    se_to_sd <- function(se, n){
+    	sd = se*sqrt(n)
+    	return(sd)
+    }
+
+    convert_to_SD <- function(data){
+    	data$Err_T1 <- ifelse(data$Err_T1_Type == "SE", se_to_sd(data$Err_T1, data$N_T1), data$Err_T1)
+    	data$Err_T2 <- ifelse(data$Err_T2_Type == "SE", se_to_sd(data$Err_T2, data$N_T2), data$Err_T2)
+    	return(data)
+    }
+
+       data <- convert_to_SD(data)
+
+    # Add in a species identifier
+       data$spp <- gsub(" ", "", paste0(data$genus, "_", data$species))
+
+# Actually, I stupidly just realized that we can't do this because this puts the scale on a non-ratio value so effects are undefined with the ratios. Will just have to assume that they are probably ok. We can do this if we used SMD.
+
+   # # We also need to convert the proportion data to relevant values. Note that we have both proportion AND percentages, so we need to handle these slightly differently because we need to convert the percentages and their corresponding standard deviations (which are in the same units) to proportions, so what we do to the mean we have to do to SD. 
+#    prop_convert <- function(p, sd_p){
+#    	logit_p  <- psych::logit(p) + ( (sd_p^2) / 2) * ( (1 / ( (1-p)^2)) - 1/ (p^2) )
+#    	sd_logit <- (sd_p^2) * ( (1/p) +  (1 / (1-p)) )^2#
+
+#    	return(data.frame(logit_p, sd_logit))
+#    }#
+
+#    percent_convert <- function(per, sd_per){
+#    	#Convert the mean percentage
+#    	logit_p  <- psych::logit(per/100) + (((sd_per/100)^2) / 2) * ( (1 / (1- (per/100)^2)) - (1 / ((per/100)^2) ) )
+#    	#Convert the SD of the mean
+#    	sd_logit <- ((sd_per/100)^2) * ( (1/(per/100)) +  (1 / (1-(per/100))) )^2#
+
+#    	return(data.frame(logit_p, sd_logit))
+#    }#
+
+#    convert_prop_percent <- function(data){
+#    	# Match the rows that meet the requirements
+#    	map_percent <- which(data$prop == "2", data$prop)
+#    	   map_prop <- which(data$prop == "1", data$prop)#
+
+#    	# Convert the percentages and add into the first treatment
+#    	   	data[map_percent, c("X_T1", "Err_T1")] <- percent_convert(data[map_percent,]$X_T1, data[map_percent,]$Err_T1)
+#    	   	data[map_percent, c("X_T2", "Err_T2")] <- percent_convert(data[map_percent,]$X_T2, data[map_percent,]$Err_T2)#
+
+#    	# Convert the proportions
+#			data[map_prop, c("X_T1", "Err_T1")] <- prop_convert(data[map_prop,]$X_T1, data[map_prop,]$Err_T1)
+#    	   	data[map_prop, c("X_T2", "Err_T2")] <- prop_convert(data[map_prop,]$X_T2, data[map_prop,]$Err_T2)  #
+
+#    	 return(data)  
+#    }#
+
+#    # Now convert the percentages and proportions to logit scales using the Delta method to approximate the mean and sd on the logit scale.
+#    data <- convert_prop_percent(data)
+
+
+    # Extract male data, and because errors are converted to SD now, we can exclude the Err_type columns. We also want to add an observation-level random effect
+      	  males <- filter(data, sex == "males")[, -match(c("Err_T1_Type","Err_T2_Type"), colnames(data))]
+      males$obs <- 1:nrow(males)
+        females <- filter(data, sex == "females")[, -match(c("Err_T1_Type","Err_T2_Type"), colnames(data))]
+    females$obs <- 1:nrow(females)
+
+```
+
+We'll now use the `males` and `females` datasets throughout for data exploration and summary statistics before we do some meta-analysis with subsets of them. We can generate the effect sizes and corresponding sampling variance for each dataset. We can use Wolfgang's very excellent, and comprehensive, `escalc` function to generate (bias corrected) versions of lnVR and lnCVR and also lnRR, which we can then add to the dataset. We'll create separate datasets so it's clear which effect size we are using, but these could easily be all merged into one. We just find it easier to have them separated so that we can change the dataset. What we want to do is "subtract" log(T1) from log(T2), summary statistics. In other words, when the effect size is negative, it means that the higher temperature (T2) has a smaller mean or variance compared with the lower temperature (T1). When the effect size is positive, it means that T1 has a smaller mean or variance than T2. We can see how this works quite easily by checking results form a few simple ratios. For example, `log(2/1)` = `r log(2/1)` is positive and we can see that the numerator is larger than the denominator. In contrast, `log(1/2)` = `r log(1/2)` is the same estimate, but negative and we can see that the numerator is smaller than the denominator. All we are essentially doing then is calculating the following ratio: `log(T2/T1)`. We can even convert this to a more interpretable value, which will will do a little later, by exponentiating the resulting value. So, for example, `exp(log(1/2))` = `r exp(log(1/2))`, which means that the numerator (i.e., T2) is `r (1-exp(log(1/2)))*100`% smaller than the denominator. To give you another example, if `exp(log(1.5/2))` = `r exp(log(1.5/2))`, which means that the numerator (i.e., T2) is `r (1-exp(log(1.5/2)))*100`% smaller than the denominator. If, for example, the ratios were reversed such that, we have `exp(log(2/1.5))` = `r exp(log(2/1.5))` then this would mean that the numerator is `r (exp(log(2/1.5))-1)*100`% larger than the denominator. This same interpretation applies to lnVR and lnCVR when we talk about variances. 
+
+```{r echo = TRUE, eval = TRUE}
+	lnRR_males <- metafor::escalc(measure= "ROM", m1i= X_T2, m2i = X_T1, sd1i= Err_T2, sd2i= Err_T1, n1i =N_T2, n2i=N_T1,  append = TRUE, data = males)
+	lnVR_males <- metafor::escalc(measure= "VR", m1i= X_T2, m2i = X_T1, sd1i= Err_T2, sd2i= Err_T1, n1i =N_T2, n2i=N_T1,  append = TRUE, data = males)
+   lnCVR_males <- metafor::escalc(measure= "CVR", m1i= X_T2, m2i = X_T1, sd1i= Err_T2, sd2i= Err_T1, n1i =N_T2, n2i=N_T1,  append = TRUE, data = males)
+```
+
+We can then do the same for the females:
+
+```{r echo = TRUE, eval = TRUE}
+	lnRR_females <- metafor::escalc(measure= "ROM", m1i= X_T2, m2i = X_T1, sd1i= Err_T2, sd2i= Err_T1, n1i =N_T2, n2i=N_T1,  append = TRUE, data = females)
+	lnVR_females <- metafor::escalc(measure= "VR", m1i= X_T2, m2i = X_T1, sd1i= Err_T2, sd2i= Err_T1, n1i =N_T2, n2i=N_T1,  append = TRUE, data = females)
+   lnCVR_females <- metafor::escalc(measure= "CVR", m1i= X_T2, m2i = X_T1, sd1i= Err_T2, sd2i= Err_T1, n1i =N_T2, n2i=N_T1,  append = TRUE, data = females)
+```
+
+Now we have size datasets with the effect size, `yi`, being the relevant ratio of means, standard deviations and coefficient of variations, for males and females and `vi` being the corresponding sampling variance. These datasets can then be substituted into the models to estimate overall effects, how moderators impact variance and the variation in effects overall. 
+
+### Data Exploration
+
+Now that we have the `males` and `females` data created we can start some data exploration. We can first view these datasets, the raw data, if we want first. Since we have three different effect sizes, we'll just view the lnRR datasets for both sexes, but the raw data for each are provided should the reader be interested in looking at them all.
+
+We'll look at the female data first. It's smaller:
+
+```{r echo = TRUE, eval = TRUE}
+   
+    kable(lnRR_females) %>%
+    kable_styling(font = 11) %>%
+    scroll_box(width = "100%", height = "200px")
+
+```
+
+Then we can look at the male data, it's a bit more as many studies quantify and seem to be interested mostly in male fitness (or fitness proxies) for sexual selection. At least in the context of temperature manipulations:
+
+```{r echo = TRUE, eval = TRUE}  
+  kable(lnRR_males) %>%
+  kable_styling(font = 11) %>%
+  scroll_box(width = "100%", height = "200px")
+
+```
+
+We can also have a look at the mean-variance relationship in these data:
+
+```{r echo = TRUE, eval = TRUE, warning = FALSE, message = FALSE, fig.width = 10, fig.height = 5}
+	
+		p1 = ggplot(data, aes(x=log(X_T1), y=log(Err_T1), col = sex)) + 
+		geom_point(size=2) + 
+		#theme_bw() + 
+		theme(axis.text.x=element_text(size=rel(0.4))) + 
+		labs(x = "log(Mean_Temp1)", y = "log(SD_Temp1)")
+
+		p2 = ggplot(data, aes(x=log(X_T2), y=log(Err_T2), col = sex)) + 
+		geom_point(size=2) + 
+		#theme_bw() + 
+		theme(axis.text.x=element_text(size=rel(0.4))) + 
+		labs(x = "log(Mean_Temp2)", y = "log(SD_Temp2)")
+
+		grid.arrange(p1,p2, nrow =1)
+```
+
+### Phylogeny
+We can have a look at finding a somewhat resolved phylogenetic tree of the taxa using the open tree of life. Trying time tree, there are too many unresolved taxa. To start, we need to first get the unique list of taxa in our data. We'll do this for the entire dataset and then we can prune the tree should we need to do this.
+
+```{r echo = TRUE, eval = TRUE, cache = TRUE, message = FALSE, warning = FALSE}
+    spp_names <- unique(data$spp)
+
+    # Search rotl
+	    tl <- tnrs_match_names(spp_names)
+
+    # Generate the tree with the list of ott_ids
+    	tree <- tol_induced_subtree(ott_ids=tl$ott_id)
+
+    # Have a look
+    	plot(tree, cex = 0.8)
+```
+
+While the tree looks reasonably resolved, as we can see, there are a few problems here, even with `rotl`. *Drosophila melanogaster* is not found, and is then identified as a bird! *Phorticella striata* is identified as a single-celled organism, yet is supposed to be a fly. We can fix these obvious problems by manually finding the ott_id online for these taxa and adding them to the ott_id list:
+
+```{r echo = TRUE, eval = TRUE, cache = TRUE, message = FALSE, warning = FALSE}
+
+	ott_id <- tl$ott_id
+
+	# Add in the correct id for Drosophila and Phorticella
+		ott_id[c(13, 11)] <- c("505714", "4420733")
+
+    # Generate the tree with the list of ott_ids
+    	tree <- tol_induced_subtree(ott_ids=ott_id)
+
+    # Have a look
+    	plot(tree, cex = 0.8)
+```
+
+OK, Now it looks more sensible. The taxa are placed into what looks to be about their correct taxonomic positions. Note that for *Phorticella striata* we used a different, and presumably closely related species *Phorticella flavipennes* given the other species was not identified in an online search. But, this is a Drosophlid like species and so its taxonomic position is correct within the tree.
+
+# Multi-level Meta-analytic Models (MLMA)
+
+Now that the datasets are cleaned, effect sizes generated and explored a bit we are now ready to start meta-analysing. We first start with multi-level meta-analytic models (MLMA). These are essentially intercept-only random effects models that account for the known sampling variance of effects along with additional sources of non-independence, such as study and species in a single model. These models are useful for exploring heterogeneity in effects, estimating overall meta-analytic means to understand how temperature affects sexual selection across the entire population of studies and species included in our sample. Effect sizes here are not totally comparable because, as we are well aware, across studies they use different temperatures. However, we are aware of this and what this will essentially do is increase the heterogeneity in effects. Alternatively, this will somewhat get captured by the study-level / species-level random effect because temperature is likely a major driver of between study differences. So, for now, we will assume that effect sizes are comparable and then we can control for temperature differences in meta-regression models below. 
+
+## Males
+
+We'll first have a look at the male data and each of the effect sizes of interest. 
+
+#### LnRR
+```{r echo = TRUE, eval = TRUE, cache = TRUE, message = FALSE, warning = FALSE}
+	MLMA_male_lnRR <- metafor::rma.mv(yi ~ 1, V = vi, random = list( ~1|study, ~1|spp, ~1|obs), data = lnRR_males)
+	summary(MLMA_male_lnRR)
+```
+
+Here we can see from the model output that there a high between-study variance in effects, which isn't totally surprising given what we discussed above. We also see that the overall meta-analytic mean is `r MLMA_male_lnRR$b` with a 95% CI = `r MLMA_male_lnRR$ci.lb` to `r MLMA_male_lnRR$ci.ub`, which tells us that the mean in the T2 treatment tends to be smaller than the mean in the T1 treatment. More specifically, the higher temperature is about `r (1-exp(MLMA_male_lnRR$b))*100`% smaller than the mean at the lower temperature. The overall estimate isn't significant (approaching it though), but the sample size is small, so we should stay focused on the estimate and its uncertainty.
+
+#### lnVR
+```{r echo = TRUE, eval = TRUE, cache = TRUE, message = FALSE, warning = FALSE}
+	MLMA_male_lnVR <- metafor::rma.mv(yi ~ 1, V = vi, random = list( ~1|study, ~1|spp, ~1|obs), data = lnVR_males)
+	summary(MLMA_male_lnVR)
+```
+
+Here we can see from the model output that there a moderate between-study variance in effects. We also see that the overall meta-analytic mean is `r MLMA_male_lnVR$b` with a 95% CI = `r MLMA_male_lnVR$ci.lb` to `r MLMA_male_lnVR$ci.ub`, which tells us that the variance in the T2 treatment tends to be smaller than the variance in the T1 treatment, although this is a very small effect size overall. More specifically, the higher temperature is about `r (1-exp(MLMA_male_lnVR$b))*100`% smaller than the lower temperature. 
+
+#### lnCVR
+```{r echo = TRUE, eval = TRUE, cache = TRUE, message = FALSE, warning = FALSE}
+	MLMA_male_lnCVR <- metafor::rma.mv(yi ~ 1, V = vi, random = list( ~1|study, ~1|spp, ~1|obs), data = lnCVR_males)
+	summary(MLMA_male_lnCVR)
+```
+
+Here we can see from the model output that there a small between-study variance in effects. We also see that the overall meta-analytic mean is `r MLMA_male_lnCVR$b` with a 95% CI = `r MLMA_male_lnCVR$ci.lb` to `r MLMA_male_lnCVR$ci.ub`, which tells us that the variance (controlling for the mean) in the T2 treatment tends to be higher than the variance (controlling for the mean) in the T1 treatment. This effect is approaching significance at p = 0.05. More specifically, the variance (controlling for the mean change) in higher temperature is about `r (exp(MLMA_male_lnCVR$b)-1)*100`% larger compared to the lower temperature. 
+
+## Females
+
+Now we'll look at the female data and each of the effect sizes of interest. 
+
+#### LnRR
+```{r echo = TRUE, eval = TRUE, cache = TRUE, message = FALSE, warning = FALSE}
+	MLMA_female_lnRR <- metafor::rma.mv(yi ~ 1, V = vi, random = list( ~1|study, ~1|spp, ~1|obs), data = lnRR_females)
+	summary(MLMA_female_lnRR)
+```
+
+Here we can see from the model output that there a high between-species variance in effects. We also see that the overall meta-analytic mean is `r MLMA_female_lnRR$b` with a 95% CI = `r MLMA_female_lnRR$ci.lb` to `r MLMA_female_lnRR$ci.ub`, which tells us that the mean in the T2 treatment tends to be smaller than the mean in the T1 treatment, consistent (but lower) than the male effect. More specifically, the higher temperature is about `r (1-exp(MLMA_female_lnRR$b))*100`% smaller than the lower temperature. The overall estimate isn't significant, but again (even more so here) the sample size is small, so we should stay focused on the estimate and its uncertainty.
+
+#### lnVR
+```{r echo = TRUE, eval = TRUE, cache = TRUE, message = FALSE, warning = FALSE}
+	MLMA_female_lnVR <- metafor::rma.mv(yi ~ 1, V = vi, random = list( ~1|study, ~1|spp, ~1|obs), data = lnVR_females)
+	summary(MLMA_female_lnVR)
+```
+
+Here we can see from the model output that there a moderate between-study variance in effects. We also see that the overall meta-analytic mean is `r MLMA_female_lnVR$b` with a 95% CI = `r MLMA_female_lnVR$ci.lb` to `r MLMA_female_lnVR$ci.ub`, which tells us that the variance in the T2 treatment tends to be smaller than the variance in the T1 treatment, although this is a very small effect size overall amounting to the higher temperature being about `r (1-exp(MLMA_female_lnVR$b))*100`% smaller. 
+
+
+#### lnCVR
+```{r echo = TRUE, eval = TRUE, cache = TRUE, message = FALSE, warning = FALSE}
+	MLMA_female_lnCVR <- metafor::rma.mv(yi ~ 1, V = vi, random = list( ~1|study, ~1|spp, ~1|obs), data = lnCVR_females)
+	summary(MLMA_female_lnCVR)
+```
+
+Here we can see from the model output that there a small between-study variance in effects. We also see that the overall meta-analytic mean is `r MLMA_female_lnCVR$b` with a 95% CI = `r MLMA_female_lnCVR$ci.lb` to `r MLMA_female_lnCVR$ci.ub`, which tells us that the variance (controlling for the mean) in the T2 treatment tends to be higher than the variance (controlling for the mean) in the T1 treatment. Nonetheless, is a small effect amounting to the variance (controlling for the mean change) in higher temperature being about `r (exp(MLMA_female_lnCVR$b)-1)*100`% larger compared to the lower temperature. 
+
+# Multi-level Meta-regression Models (MLMR)
+
+Given our very limited sample size, we can only hope to run some very simple mete-regression models exploring how a few hypothesized variables may impact variation in effects, and also make sure our interpretations from the above models are correct. 
+
+# Publication Bias
+
+We should always explore funnel plots. We'll do that for each effect size estimate for males and females. High levels of heterogeneity can lead to apparent asymmetries in funnel plots, and this is expected to be exacerbated with small sample sizes. We'll view the raw data first with the random effects models and then explore how funnel asymmetry changes when accounting for moderators
+
+```{r echo = TRUE, eval = TRUE, cache = TRUE, message = FALSE, warning = FALSE, fig.width = 7.259912, fig.height = 8.458150}
+par(mfrow = c(3,2))
+
+# lnRR
+funnel(MLMA_male_lnRR, yaxis = "seinv", digits = 2, level = c(0.95, 0.99), main = "Males – lnRR")
+funnel(MLMA_female_lnRR, yaxis = "seinv", digits = 2, level = c(0.95, 0.99), main = "Females – lnRR")
+
+#lnVR
+funnel(MLMA_male_lnVR, yaxis = "seinv", digits = 2, level = c(0.95, 0.99), main = "Males – lnVR")
+funnel(MLMA_female_lnVR, yaxis = "seinv", digits = 2, level = c(0.95, 0.99), main = "Females – lnVR")
+
+#lnCVR
+funnel(MLMA_male_lnCVR, yaxis = "seinv", digits = 2, level = c(0.95, 0.99), main = "Males – lnCVR")
+funnel(MLMA_female_lnCVR, yaxis = "seinv", digits = 2, level = c(0.95, 0.99), main = "Females – lnCVR")
+
+```
+
+There does appear to be some strong outlying data points and some asymmetry in a few plots, but the patterns are not entirely obvious. We can even formally test this asymmetry using some regression tests (Egger's regression tests), albeit these have their own limitations, so we should use these as a guide. Given that we have multi-level models, we should take the residuals and plot these residuals against some measure of precision (i.e., standard error, inverse of sample size etc.). We'll use the inverse of the standard error here. 
+
+```{r echo = TRUE, eval = TRUE, cache = TRUE, message = FALSE, warning = FALSE, fig.width = 7.259912, fig.height = 8.458150}
+	# lnRR
+	#ef_resid_lnRR <- residuals(MLMA_male_lnRR)
+	#regtest(MLMA_male_lnRR, model="rma", predictor="sei")
+
+```
+
+# Sensitivity Analyses
+
+Upon close reading of the research papers that were included in the meta-analysis, it is clear that study design varies a lot between studies. More specifically, many studies are temperature manipulations on isofemale lines or lab-bred populations that have been bred and reared in the lab for many (sometimes, hundreds) of generations. These lab colonies have wildly different temperature treatments to what would be normally encountered in nature, and to some extent, they are adapted quite well to the constant temperature conditions in which they have been bread. This means that, while temperature may affect the variance, it may also come down to which temperature treatment the population has adapted to with respect to how temperature impacts sexual selection. This means that, the relationship between temperature and its effect on sexual selection is not as simple as a linear relationship between temperature and variation in fitness, but rather it also depends on whether the temperature treatments involve a temperature for which the population is adapted to. We tested this idea by 'flipping' the direction of effect sizes depending on which temperature the population was adapted to. If this information could not be determined within the paper or using other sources we left the directionality of the effect the same.
+
+
+# Supplemental Figures and Tables
+
+# Session Information
+
+```{r echo = FALSE, eval = TRUE}
+sessionInfo()
+```
