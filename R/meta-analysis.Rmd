@@ -1,13 +1,15 @@
 ---
 title: "Meta-analysis on the effects of temperature on sexual selection"
+author: "García-Roa, R., Garcia-Gonzalez, F., Noble, D.W.A. & Carazo, P."
+date: '`r format(Sys.time(), "%d %B, %Y")`'
 output:
   html_document:
     code_folding: hide
     theme: united
     toc: yes
     toc_float: yes
-author: García-Roa, R., Garcia-Gonzalez, F., Noble, D.W.A. & Carazo, P.
-date: "`r format(Sys.time(), '%d %B, %Y')`"
+  pdf_document:
+    toc: yes
 ---
 
 ```{r,echo=FALSE, cache=FALSE}
@@ -19,7 +21,7 @@ date: "`r format(Sys.time(), '%d %B, %Y')`"
 # Setting up and Data Exploration
 ### Load Packages
 ```{r echo = TRUE, eval = TRUE}
-    pacman::p_load(metafor, MCMCglmm, tidyverse, rotl, magrittr, kableExtra, rmarkdown, gridExtra, psych)
+    pacman::p_load(metafor, MCMCglmm, tidyverse, rotl, magrittr, kableExtra, rmarkdown, gridExtra, psych, metaAidR)
 ```
 
 ### Load Data
@@ -40,27 +42,31 @@ There are clearly a few things that need to be sorted. First, we need to convert
 
 ```{r echo = TRUE, eval = TRUE}
     # Convert everything to SD from SE
-    se_to_sd <- function(se, n){
-    	sd = se*sqrt(n)
-    	return(sd)
-    }
+se_to_sd <- function(se, n){
+  sd = se*sqrt(n)
+  return(sd)
+}
 
-    convert_to_SD <- function(data){
-    	data$Err_T1 <- ifelse(data$Err_T1_Type == "SE", se_to_sd(data$Err_T1, data$N_T1), data$Err_T1)
-    	data$Err_T2 <- ifelse(data$Err_T2_Type == "SE", se_to_sd(data$Err_T2, data$N_T2), data$Err_T2)
-    	return(data)
-    }
+convert_to_SD <- function(data){
+  data$Err_T1 <- ifelse(data$Err_T1_Type == "SE", se_to_sd(data$Err_T1, data$N_T1), data$Err_T1)
+  data$Err_T2 <- ifelse(data$Err_T2_Type == "SE", se_to_sd(data$Err_T2, data$N_T2), data$Err_T2)
+  return(data)
+}
 
-       data <- convert_to_SD(data)
+data <- convert_to_SD(data)
 
-    # Add in a species identifier
-       data$spp <- gsub(" ", "", paste0(data$genus, "_", data$species))
+# Add in a species identifier
+data$spp <- gsub(" ", "", paste0(data$genus, "_", data$species))
 
-    # Extract male data, and because errors are converted to SD now, we can exclude the Err_type columns. We also want to add an observation-level random effect
-      	  males <- filter(data, sex == "males")[, -match(c("Err_T1_Type","Err_T2_Type"), colnames(data))]
-      males$obs <- 1:nrow(males)
-        females <- filter(data, sex == "females")[, -match(c("Err_T1_Type","Err_T2_Type"), colnames(data))]
-    females$obs <- 1:nrow(females)
+# Add a new variable describing the temperature difference between treatments. We will scale this so that when we fit models the intercept is automatically at the "average" temperature across studies
+data$deltaT <- as.numeric(scale(data$T2 - data$T1))
+
+# Extract male data, and because errors are converted to SD now, we can exclude the Err_type columns. We also want to add an observation-level random effect
+males <- filter(data, sex == "males")[, -match(c("Err_T1_Type","Err_T2_Type"), colnames(data))]
+males$obs <- 1:nrow(males)
+
+females <- filter(data, sex == "females")[, -match(c("Err_T1_Type","Err_T2_Type"), colnames(data))]
+females$obs <- 1:nrow(females)
 
 ```
 
@@ -106,7 +112,7 @@ Then we can look at the male data, it's a bit more as many studies quantify and 
 
 We can also have a look at the mean-variance relationship in these data:
 
-```{r echo = TRUE, eval = TRUE, warning = FALSE, message = FALSE, fig.width = 10, fig.height = 5}
+```{r echo = TRUE, eval = TRUE, warning = FALSE, message = FALSE, fig.width = 10.837004, fig.height = 4.299559}
 	
 		p1 = ggplot(data, aes(x=log(X_T1), y=log(Err_T1), col = sex)) + 
 		geom_point(size=2) + 
@@ -123,40 +129,6 @@ We can also have a look at the mean-variance relationship in these data:
 		grid.arrange(p1,p2, nrow =1)
 ```
 
-### Phylogeny
-We can have a look at finding a somewhat resolved phylogenetic tree of the taxa using the open tree of life. Trying time tree, there are too many unresolved taxa. To start, we need to first get the unique list of taxa in our data. We'll do this for the entire dataset and then we can prune the tree should we need to do this.
-
-```{r echo = TRUE, eval = TRUE, cache = TRUE, message = FALSE, warning = FALSE}
-    spp_names <- unique(data$spp)
-
-    # Search rotl
-	    tl <- tnrs_match_names(spp_names)
-
-    # Generate the tree with the list of ott_ids
-    	tree <- tol_induced_subtree(ott_ids=tl$ott_id)
-
-    # Have a look
-    	plot(tree, cex = 0.8)
-```
-
-While the tree looks reasonably resolved, as we can see, there are a few problems here, even with `rotl`. *Drosophila melanogaster* is not found, and is then identified as a bird! *Phorticella striata* is identified as a single-celled organism, yet is supposed to be a fly. We can fix these obvious problems by manually finding the ott_id online for these taxa and adding them to the ott_id list:
-
-```{r echo = TRUE, eval = TRUE, cache = TRUE, message = FALSE, warning = FALSE}
-
-	ott_id <- tl$ott_id
-
-	# Add in the correct id for Drosophila and Phorticella
-		ott_id[c(13, 11)] <- c("505714", "4420733")
-
-    # Generate the tree with the list of ott_ids
-    	tree <- tol_induced_subtree(ott_ids=ott_id)
-
-    # Have a look
-    	plot(tree, cex = 0.8)
-```
-
-OK, Now it looks more sensible. The taxa are placed into what looks to be about their correct taxonomic positions. Note that for *Phorticella striata* we used a different, and presumably closely related species *Phorticella flavipennes* given the other species was not identified in an online search. But, this is a Drosophlid like species and so its taxonomic position is correct within the tree.
-
 # Multi-level Meta-analytic Models (MLMA)
 
 Now that the datasets are cleaned, effect sizes generated and explored a bit we are now ready to start meta-analysing. We first start with multi-level meta-analytic models (MLMA). These are essentially intercept-only random effects models that account for the known sampling variance of effects along with additional sources of non-independence, such as study and species in a single model. These models are useful for exploring heterogeneity in effects, estimating overall meta-analytic means to understand how temperature affects sexual selection across the entire population of studies and species included in our sample. Effect sizes here are not totally comparable because, as we are well aware, across studies they use different temperatures. However, we are aware of this and what this will essentially do is increase the heterogeneity in effects. Alternatively, this will somewhat get captured by the study-level / species-level random effect because temperature is likely a major driver of between study differences. So, for now, we will assume that effect sizes are comparable and then we can control for temperature differences in meta-regression models below. 
@@ -169,9 +141,18 @@ We'll first have a look at the male data and each of the effect sizes of interes
 ```{r echo = TRUE, eval = TRUE, cache = TRUE, message = FALSE, warning = FALSE}
 	MLMA_male_lnRR <- metafor::rma.mv(yi ~ 1, V = vi, random = list( ~1|study, ~1|spp, ~1|obs), data = lnRR_males)
 	summary(MLMA_male_lnRR)
+
 ```
 
 Here we can see from the model output that there a high between-study variance in effects, which isn't totally surprising given what we discussed above. We also see that the overall meta-analytic mean is `r MLMA_male_lnRR$b` with a 95% CI = `r MLMA_male_lnRR$ci.lb` to `r MLMA_male_lnRR$ci.ub`, which tells us that the mean in the T2 treatment tends to be smaller than the mean in the T1 treatment. More specifically, the higher temperature is about `r (1-exp(MLMA_male_lnRR$b))*100`% smaller than the mean at the lower temperature. The overall estimate isn't significant (approaching it though), but the sample size is small, so we should stay focused on the estimate and its uncertainty.
+
+We can also get estimates of the between study, phylogenetic (if we have one), species and total heterogenity.
+
+```{r echo = TRUE, eval = TRUE, cache = TRUE, message = FALSE, warning = FALSE}
+  kable(metaAidR::I2(MLMA_male_lnRR, MLMA_male_lnRR$vi))%>%
+  kable_styling(font = 14)
+```
+
 
 #### lnVR
 ```{r echo = TRUE, eval = TRUE, cache = TRUE, message = FALSE, warning = FALSE}
@@ -181,6 +162,13 @@ Here we can see from the model output that there a high between-study variance i
 
 Here we can see from the model output that there a moderate between-study variance in effects. We also see that the overall meta-analytic mean is `r MLMA_male_lnVR$b` with a 95% CI = `r MLMA_male_lnVR$ci.lb` to `r MLMA_male_lnVR$ci.ub`, which tells us that the variance in the T2 treatment tends to be smaller than the variance in the T1 treatment, although this is a very small effect size overall. More specifically, the higher temperature is about `r (1-exp(MLMA_male_lnVR$b))*100`% smaller than the lower temperature. 
 
+We can also get estimates of the between study, phylogenetic (if we have one), species and total heterogenity.
+
+```{r echo = TRUE, eval = TRUE, cache = TRUE, message = FALSE, warning = FALSE}
+  kable(metaAidR::I2(MLMA_male_lnVR, MLMA_male_lnVR$vi))%>%
+  kable_styling(font = 14)
+```
+
 #### lnCVR
 ```{r echo = TRUE, eval = TRUE, cache = TRUE, message = FALSE, warning = FALSE}
 	MLMA_male_lnCVR <- metafor::rma.mv(yi ~ 1, V = vi, random = list( ~1|study, ~1|spp, ~1|obs), data = lnCVR_males)
@@ -188,6 +176,56 @@ Here we can see from the model output that there a moderate between-study varian
 ```
 
 Here we can see from the model output that there a small between-study variance in effects. We also see that the overall meta-analytic mean is `r MLMA_male_lnCVR$b` with a 95% CI = `r MLMA_male_lnCVR$ci.lb` to `r MLMA_male_lnCVR$ci.ub`, which tells us that the variance (controlling for the mean) in the T2 treatment tends to be higher than the variance (controlling for the mean) in the T1 treatment. This effect is approaching significance at p = 0.05. More specifically, the variance (controlling for the mean change) in higher temperature is about `r (exp(MLMA_male_lnCVR$b)-1)*100`% larger compared to the lower temperature. 
+
+We can also get estimates of the between study, phylogenetic (if we have one), species and total heterogenity.
+
+```{r echo = TRUE, eval = TRUE, cache = TRUE, message = FALSE, warning = FALSE}
+  kable(metaAidR::I2(MLMA_male_lnCVR, MLMA_male_lnCVR$vi))%>%
+  kable_styling(font = 14)
+```
+
+The one challenge with these effects is that they contain directionality, however, as is indicated in our review, directionality may not be so easily predicted and there are good theoretical reasons to believe that such clear directional predictions do not likely exist. Hence, we can test this by analysing the magnitude of the response. Here we need to do a couple tricks to account for uncertainty and avoid bias. 
+
+```{r echo = TRUE, eval = TRUE, cache = TRUE, message = FALSE, warning = FALSE}
+# Set the prior
+prior <- list(R=list(V = 1, nu =0.002), G = list(G1 = list(V=1, nu = 0.002), G2 = list(V=1, nu = 0.002)))
+
+# Run the Bayesian MLMA model
+model_magnitude_bayes_males <- MCMCglmm(yi ~ deltaT, mev = lnCVR_males$vi, random = ~study + spp, data = lnCVR_males, prior = prior, burnin = 10000, nitt = 1000000, thin = 100)
+summary(model_magnitude_bayes_males)
+
+model_magnitude_bayes_malesVR <- MCMCglmm(yi ~ deltaT, mev = lnVR_males$vi, random = ~study + spp, data = lnVR_males, prior = prior, burnin = 10000, nitt = 1000000, thin = 100)
+summary(model_magnitude_bayes_malesVR)
+
+# Extract posteriors
+sol <- model_magnitude_bayes_males$Sol
+VCV <- model_magnitude_bayes_males$VCV[,-match("sqrt(mev):sqrt(mev).meta", colnames(model_magnitude_bayes_males$VCV))]
+
+sol_VR <- model_magnitude_bayes_malesVR$Sol
+VCV_VR <- model_magnitude_bayes_malesVR$VCV[,-match("sqrt(mev):sqrt(mev).meta", colnames(model_magnitude_bayes_malesVR$VCV))]
+
+# Can get the same I2.
+I2(model_magnitude_bayes_males, v = lnCVR_males$vi)
+```
+
+Now that the Bayesian model is run, we have the overall meta-analytic mean and its posterior distribution, we can apply the posterior to the folded normal:
+
+```{r echo = TRUE, eval = TRUE, cache = TRUE, message = FALSE, warning = FALSE}
+
+# Get the folded normal function. This takes the mean and the SD for the "normal" and returns the "mean" on the folded. We can use the entire posterior distribution which then gives us the CI for the mean.
+mu.fnorm <-  function(mu, sigma){
+  dnorm(mu, 0, sigma)*2*sigma^2 + mu*(2*pnorm(mu, 0, sigma) -1)
+}
+
+magnitude_mean_males <- mu.fnorm(sol[,1], sqrt(rowSums(VCV)))
+magnitude_males_mean <- data.frame(mean_mag = mean(magnitude_mean_males), L_CI = HPDinterval(magnitude_mean_males)[1], U_CI = HPDinterval(magnitude_mean_males)[2])  
+
+magnitude_mean_males_VR <- mu.fnorm(sol_VR[,1], sqrt(rowSums(VCV_VR)))
+magnitude_males_mean_VR <- data.frame(mean_mag = mean(magnitude_mean_males_VR), L_CI = HPDinterval(magnitude_mean_males_VR)[1], U_CI = HPDinterval(magnitude_mean_males_VR)[2])  
+
+```
+
+OK, so, now we can see that the magnitude change in the log ratio of CV between treatments, is on average quite large, and does not overlap zero.  
 
 ## Females
 
@@ -201,6 +239,13 @@ Now we'll look at the female data and each of the effect sizes of interest.
 
 Here we can see from the model output that there a high between-species variance in effects. We also see that the overall meta-analytic mean is `r MLMA_female_lnRR$b` with a 95% CI = `r MLMA_female_lnRR$ci.lb` to `r MLMA_female_lnRR$ci.ub`, which tells us that the mean in the T2 treatment tends to be smaller than the mean in the T1 treatment, consistent (but lower) than the male effect. More specifically, the higher temperature is about `r (1-exp(MLMA_female_lnRR$b))*100`% smaller than the lower temperature. The overall estimate isn't significant, but again (even more so here) the sample size is small, so we should stay focused on the estimate and its uncertainty.
 
+We can also get estimates of the between study, phylogenetic (if we have one), species and total heterogenity.
+
+```{r echo = TRUE, eval = TRUE, cache = TRUE, message = FALSE, warning = FALSE}
+  kable(metaAidR::I2(MLMA_female_lnRR, MLMA_female_lnRR$vi))%>%
+  kable_styling(font = 14)
+```
+
 #### lnVR
 ```{r echo = TRUE, eval = TRUE, cache = TRUE, message = FALSE, warning = FALSE}
 	MLMA_female_lnVR <- metafor::rma.mv(yi ~ 1, V = vi, random = list( ~1|study, ~1|spp, ~1|obs), data = lnVR_females)
@@ -209,18 +254,353 @@ Here we can see from the model output that there a high between-species variance
 
 Here we can see from the model output that there a moderate between-study variance in effects. We also see that the overall meta-analytic mean is `r MLMA_female_lnVR$b` with a 95% CI = `r MLMA_female_lnVR$ci.lb` to `r MLMA_female_lnVR$ci.ub`, which tells us that the variance in the T2 treatment tends to be smaller than the variance in the T1 treatment, although this is a very small effect size overall amounting to the higher temperature being about `r (1-exp(MLMA_female_lnVR$b))*100`% smaller. 
 
+We can also get estimates of the between study, phylogenetic (if we have one), species and total heterogenity.
+
+```{r echo = TRUE, eval = TRUE, cache = TRUE, message = FALSE, warning = FALSE}
+  kable(metaAidR::I2(MLMA_female_lnVR, MLMA_female_lnVR$vi))%>%
+  kable_styling(font = 14)
+```
 
 #### lnCVR
 ```{r echo = TRUE, eval = TRUE, cache = TRUE, message = FALSE, warning = FALSE}
-	MLMA_female_lnCVR <- metafor::rma.mv(yi ~ 1, V = vi, random = list( ~1|study, ~1|spp, ~1|obs), data = lnCVR_females)
+	MLMA_female_lnCVR <- metafor::rma.mv(yi ~ 1, V = vi, random = list( ~1|study, ~1|obs), data = lnCVR_females)
 	summary(MLMA_female_lnCVR)
 ```
 
 Here we can see from the model output that there a small between-study variance in effects. We also see that the overall meta-analytic mean is `r MLMA_female_lnCVR$b` with a 95% CI = `r MLMA_female_lnCVR$ci.lb` to `r MLMA_female_lnCVR$ci.ub`, which tells us that the variance (controlling for the mean) in the T2 treatment tends to be higher than the variance (controlling for the mean) in the T1 treatment. Nonetheless, is a small effect amounting to the variance (controlling for the mean change) in higher temperature being about `r (exp(MLMA_female_lnCVR$b)-1)*100`% larger compared to the lower temperature. 
 
+We can also get estimates of the between study, phylogenetic (if we have one), species and total heterogenity.
+
+```{r echo = TRUE, eval = TRUE, cache = TRUE, message = FALSE, warning = FALSE}
+  kable(metaAidR::I2(MLMA_female_lnCVR, MLMA_female_lnCVR$vi))%>%
+  kable_styling(font = 14)
+```
+
+Again, we can have a look at the magnitudes
+
+```{r echo = TRUE, eval = TRUE, cache = TRUE, message = FALSE, warning = FALSE}
+# Set the prior
+prior <- list(R=list(V = 1, nu =0.002), G = list(G1 = list(V=1, nu = 0.002)))
+
+# Run the Bayesian MLMA model
+model_magnitude_bayes_feamles <- MCMCglmm(yi ~ deltaT, mev = lnCVR_females$vi, random = ~study, data = lnCVR_females, prior = prior, burnin = 10000, nitt = 1000000, thin = 100)
+summary(model_magnitude_bayes_feamles)
+
+model_magnitude_bayes_feamles_VR <- MCMCglmm(yi ~ deltaT, mev = lnVR_females$vi, random = ~study, data = lnVR_females_ests, prior = prior, burnin = 10000, nitt = 1000000, thin = 100)
+summary(model__estsmagnitude_bayes_feamles_VR)
+
+# Extract posteriors
+sol_f <- model_magnitude_bayes_feamles$Sol
+VCV_f <- model_magnitude_bayes_feamles$VCV[,-match("sqrt(mev):sqrt(mev).meta", colnames(model_magnitude_bayes_feamles$VCV))]
+
+sol_f_VR <- model_magnitude_bayes_feamles_VR$Sol
+VCV_f_VR <- model_magnitude_bayes_feamles_VR$VCV[,-match("sqrt(mev):sqrt(mev).meta", colnames(model_magnitude_bayes_feamles_VR$VCV))]
+
+# Can get the same I2.
+I2(model_magnitude_bayes_feamles, v = lnCVR_females$vi)
+```
+
+Now that the Bayesian model is run, we have the overall meta-analytic mean and its posterior distribution, we can apply the posterior to the folded normal:
+
+```{r echo = TRUE, eval = TRUE, cache = TRUE, message = FALSE, warning = FALSE}
+
+# Get the folded normal function. This takes the mean and the SD for the "normal" and returns the "mean" on the folded. We can use the entire posterior distribution which then gives us the CI for the mean.
+
+magnitude_mean_females <- mu.fnorm(sol_f[,1], sqrt(rowSums(VCV_f)))
+magnitude_females_mean <- data.frame(mean_mag = mean(magnitude_mean_females), L_CI = HPDinterval(magnitude_mean_females)[1], U_CI = HPDinterval(magnitude_mean_females)[2])  
+
+magnitude_mean_females_VR <- mu.fnorm(sol_f[,1], sqrt(rowSums(VCV_f)))
+magnitude_females_mean_VR <- data.frame(mean_mag = mean(magnitude_mean_females_VR), L_CI = HPDinterval(magnitude_mean_females_VR)[1], U_CI = HPDinterval(magnitude_mean_females_VR)[2])  
+
+```
+
+OK, so, now we can see that the magnitude change in the log ratio of CV between treatments, is on average quite large, and does not overlap zero. 
+
 # Multi-level Meta-regression Models (MLMR)
 
-Given our very limited sample size, we can only hope to run some very simple mete-regression models exploring how a few hypothesized variables may impact variation in effects, and also make sure our interpretations from the above models are correct. 
+Given our very limited sample size, we can only hope to run some simple meta-regression models exploring how a few hypothesized variables impact variation in effects.
+
+## Males
+
+### When we control for temperature differences between treatments within a study what is the average effect size at an "average" temperature?
+
+Here we want to simply control for the fact that effect sizes across studies are done with experimental temperature treatments that vary in temperature. What we want to now estimate is: 1) whether the magnitude of the effect get larger with greater temperature difference between the treatments and 2) what the average effect is when we control for temperature (i.e., scaled temperature)
+
+#### lnRR
+```{r echo = TRUE, eval = TRUE, cache = TRUE, message = FALSE, warning = FALSE}
+  MLMR_male_lnRR_T <- metafor::rma.mv(yi ~ deltaT, V = vi, random = list( ~1|study, ~1|spp, ~1|obs), data = lnRR_males)
+  summary(MLMR_male_lnRR_T)
+
+```
+#### lnVR
+```{r echo = TRUE, eval = TRUE, cache = TRUE, message = FALSE, warning = FALSE}
+  MLMR_male_lnVR_T <- metafor::rma.mv(yi ~ deltaT, V = vi, random = list( ~1|study, ~1|spp, ~1|obs), data = lnVR_males)
+  summary(MLMR_male_lnVR_T)
+```
+#### lnCVR
+```{r echo = TRUE, eval = TRUE, cache = TRUE, message = FALSE, warning = FALSE}
+  MLMR_male_lnCVR_T <- metafor::rma.mv(yi ~ deltaT, V = vi, random = list( ~1|study, ~1|spp, ~1|obs), data = lnCVR_males)
+  summary(MLMR_male_lnCVR_T)
+```
+
+**Conclusions**: When we standardise the temperature comparisons across the studies, for an average temperature difference of `r mean(data$T2-data$T1)` degrees Celsius there is no strong evidence for the mean of direct and indirect fitness estimates being impacted in males
+
+### Are there differences between direct and indirect estimates of fitness, after accounting for temperature?
+
+Here we want to explore if the results are moderated by whether or not our effect size was generated with some measure of direct fitness estimate (what we really want) versus if it comes from an indirect estimate, or trait that is linked with fitness. What we will do to test this, is fit a model
+
+#### lnRR
+```{r echo = TRUE, eval = TRUE, cache = TRUE, message = FALSE, warning = FALSE}
+  MLMR_male_lnRR_T_Fitness <- metafor::rma.mv(yi ~ -1 + deltaT + fitness, V = vi, random = list( ~1|study, ~1|spp, ~1|obs), data = lnRR_males)
+  summary(MLMR_male_lnRR_T_Fitness)
+```
+#### lnVR
+```{r echo = TRUE, eval = TRUE, cache = TRUE, message = FALSE, warning = FALSE}
+  MLMR_male_lnVR_T_Fitness <- metafor::rma.mv(yi ~ -1 + deltaT+ fitness, V = vi, random = list( ~1|study, ~1|spp, ~1|obs), data = lnVR_males)
+  summary(MLMR_male_lnVR_T_Fitness)
+```
+#### lnCVR
+```{r echo = TRUE, eval = TRUE, cache = TRUE, message = FALSE, warning = FALSE}
+  MLMR_male_lnCVR_T_Fitness <- metafor::rma.mv(yi ~ -1+deltaT+ fitness, V = vi, random = list( ~1|study, ~1|spp, ~1|obs), data = lnCVR_males)
+  summary(MLMR_male_lnCVR_T_Fitness)
+```
+
+**Conclusions**: We see a slight effect of temperature between a `r mean(data$T2-data$T1)` degrees Celsius difference on the mean, when looking at direct fitness estimates the actual variance for fitness decreases significantly, where as for indirect estimates of traits the variance at higher temperatures actually increases (marginally significant). However, this effect is explained by changes in the mean as lnCVR, we see now change on direct estimates of fitness but a even stronger increase in variance for indirect traits linked with fitness.
+
+
+### Do stressful temperature comparisons lead to stronger effect sizes, when accounting for temperature differences across studies?
+
+Some studies clearly manipulate temperatures outside or on the extreme of the normal range of temperatures. We hypothesized that stressful temperatures will likely result in a greater increase in variance. 
+
+#### lnRR
+```{r echo = TRUE, eval = TRUE, cache = TRUE, message = FALSE, warning = FALSE}
+  MLMR_male_lnRR_T_stress <- metafor::rma.mv(yi ~ -1 +deltaT +temp.range, V = vi, random = list( ~1|study, ~1|obs), data = lnRR_males)
+  summary(MLMR_male_lnRR_T_stress)
+
+```
+#### lnVR
+```{r echo = TRUE, eval = TRUE, cache = TRUE, message = FALSE, warning = FALSE}
+  MLMR_male_lnVR_T_stress <- metafor::rma.mv(yi ~ -1 + deltaT+temp.range, V = vi, random = list( ~1|study, ~1|spp, ~1|obs), data = lnVR_males)
+  summary(MLMR_male_lnVR_T_stress)
+```
+
+#### lnCVR
+```{r echo = TRUE, eval = TRUE, cache = TRUE, message = FALSE, warning = FALSE}
+  MLMR_male_lnCVR_T_stress <- metafor::rma.mv(yi ~ -1 + deltaT+temp.range, V = vi, random = list( ~1|study, ~1|spp, ~1|obs), data = lnCVR_males)
+  summary(MLMR_male_lnCVR_T_stress)
+```
+
+**Conclusions**: We see a strong effect of temperature on mean (decreased at higher temps) over a `r mean(data$T2-data$T1)` degrees Celsius difference when the temperatures being manipulated fall within the stressed range. When controlling for the effect of temperature on the mean, we see a strong increase in total variance in direct and indirect fitness estimates over a `r mean(data$T2-data$T1)` degrees Celsius difference. 
+
+## Females
+
+### When we control for temperature differences between treatments within a study what is the average effect size at an "average" temperature?
+
+Here we want to simply control for the fact that effect sizes across studies are done with experimental temperature treatments that vary in temperature. What we want to now estimate is: 1) whether the magnitude of the effect get larger with greater temperature difference between the treatments and 2) what the average effect is when we control for temperature (i.e., scaled temperature)
+
+#### lnRR
+```{r echo = TRUE, eval = TRUE, cache = TRUE, message = FALSE, warning = FALSE}
+  MLMR_female_lnRR_T <- metafor::rma.mv(yi ~ deltaT, V = vi, random = list( ~1|study,  ~1|obs), data = lnRR_females)
+  summary(MLMR_female_lnRR_T)
+```
+
+#### lnVR
+```{r echo = TRUE, eval = TRUE, cache = TRUE, message = FALSE, warning = FALSE}
+  MLMR_female_lnVR_T <- metafor::rma.mv(yi ~ deltaT, V = vi, random = list( ~1|study, ~1|obs), data = lnVR_females)
+  summary(MLMR_female_lnVR_T)
+```
+
+#### lnCVR
+
+```{r echo = TRUE, eval = TRUE, cache = TRUE, message = FALSE, warning = FALSE}
+  MLMR_female_lnCVR_T <- metafor::rma.mv(yi ~ deltaT, V = vi, random = list( ~1|study, ~1|obs), data = lnCVR_females)
+  summary(MLMR_female_lnCVR_T)
+```
+
+**Conclusions**: Result holds really when we account for temperature. Females don't seem to be affected mich, with the caveat of it being lower powered.
+
+### Are there differences between direct and indirect estimates of fitness, when controlling for temperature?
+
+Here we want to explore if the results are moderated by whether or not our effect size was generated with some measure of direct fitness estimate (what we really want) versus if it comes from an indirect estimate, or trait that is linked with fitness. 
+
+#### lnRR
+```{r echo = TRUE, eval = TRUE, cache = TRUE, message = FALSE, warning = FALSE}
+  MLMR_female_lnRR_T_fitness <- metafor::rma.mv(yi ~ -1+deltaT + fitness, V = vi, random = list( ~1|study,  ~1|obs), data = lnRR_females)
+  summary(MLMR_female_lnRR_T_fitness)
+```
+
+#### lnVR
+```{r echo = TRUE, eval = TRUE, cache = TRUE, message = FALSE, warning = FALSE}
+  MLMR_female_lnVR_T_Fitness <- metafor::rma.mv(yi ~ -1+ deltaT+ fitness, V = vi, random = list( ~1|study,  ~1|obs), data = lnVR_females)
+  summary(MLMR_female_lnVR_T_Fitness)
+```
+
+#### lnCVR
+
+```{r echo = TRUE, eval = TRUE, cache = TRUE, message = FALSE, warning = FALSE}
+  MLMR_female_lnCVR_T_Fitness <- metafor::rma.mv(yi ~ -1 + deltaT+ fitness, V = vi, random = list( ~1|study,  ~1|obs), data = lnCVR_females)
+  summary(MLMR_female_lnCVR_T_Fitness)
+```
+
+**Conclusions**: Over a `r mean(data$T2-data$T1)` degrees Celsius temperature difference we don't see much evidence that there are differences between direct and indirect estimates. 
+
+### Do stressful temperature comparisons lead to stronger effect sizes, when accounting for temperature differences across studies?
+
+Some studies clearly manipulate temperatures outside or on the extreme of the normal range of temperatures. We hypothesized that stressful temperatures will likely result in a greater increase in variance. Here, there is strong overlap between the study and species and we have a very small sample size, so we'll just fit study for now (more levels) and should capture any between species variance.
+
+#### lnRR
+```{r echo = TRUE, eval = TRUE, cache = TRUE, message = FALSE, warning = FALSE}
+  MLMR_female_lnRR_T_stress <- metafor::rma.mv(yi ~ -1 +deltaT +temp.range, V = vi, random = list( ~1|study, ~1|obs), data = lnRR_females)
+  summary(MLMR_female_lnRR_T_stress)
+
+```
+#### lnVR
+```{r echo = TRUE, eval = TRUE, cache = TRUE, message = FALSE, warning = FALSE}
+  MLMR_female_lnVR_T_stress <- metafor::rma.mv(yi ~ -1 + deltaT+temp.range, V = vi, random = list( ~1|study, ~1|obs), data = lnVR_females)
+  summary(MLMR_female_lnVR_T_stress)
+```
+
+#### lnCVR
+```{r echo = TRUE, eval = TRUE, cache = TRUE, message = FALSE, warning = FALSE}
+  MLMR_female_lnCVR_T_stress <- metafor::rma.mv(yi ~ -1+deltaT+temp.range, V = vi, random = list( ~1|study,  ~1|obs), data = lnCVR_females)
+  summary(MLMR_female_lnCVR_T_stress)
+```
+
+**Conclusions**: We see a strong effect of temperature on mean (decreased at higher temps) over a `r mean(data$T2-data$T1)` degrees Celsius difference when the temperatures being manipulated fall within the stressed range. When controlling for the effect of temperature on the mean, we see a significant increase in total variance in direct and indirect fitness estimates over a `r mean(data$T2-data$T1)` degrees Celsius difference. 
+
+# Figure - Overall Meta-analytic Results
+
+We can summarise the overall results with some forest plots for males and females. We'll use corrected. We will just use the lnVR and lnCVR results here. First we need to extract the relevant data.
+
+```{recho = TRUE, eval = TRUE}
+
+# Get the sample sizes and sizes
+    # Overall
+      n_all <- data.frame(data %>% group_by(sex) %>% summarise(n = n(), k = length(unique(study))))
+
+    # Direct vs indirect
+      n_direct <- data.frame(data %>% group_by(sex, fitness) %>% summarise(n = n(), k = length(unique(study))))
+
+    # Stress vs not
+      n_stress <- data.frame(data %>% group_by(sex, temp.range) %>% summarise(n = n(), k = length(unique(study))))
+
+      N <- rbind(n_all, n_all, n_direct[,c("sex", "n", "k")], n_stress[,c("sex", "n", "k")])
+      male_N <- subset(N, sex == "males")
+      female_N <- subset(N, sex == "females")
+
+      location_y <- c(1,2, 4,5, 7, 8)
+
+    # Get the model estimates and CIs
+      # Males
+         all_T_m_lnVR <- cbind(MLMR_male_lnVR_T$b[1,], MLMR_male_lnVR_T$ci.lb[1], MLMR_male_lnVR_T$ci.ub[1])
+        all_T_m_lnCVR <- cbind(MLMR_male_lnCVR_T$b[1,], MLMR_male_lnCVR_T$ci.lb[1], MLMR_male_lnCVR_T$ci.ub[1])
+
+        mag_T_m_lnVR <- as.matrix(magnitude_males_mean_VR)
+        mag_T_m_lnCVR <- as.matrix(magnitude_males_mean)
+
+       fitness_T_m_VR <- cbind(MLMR_male_lnVR_T_Fitness$b[c(2:3),], MLMR_male_lnVR_T_Fitness$ci.lb[c(2:3)], MLMR_male_lnVR_T_Fitness$ci.ub[c(2:3)])
+      fitness_T_m_CVR <- cbind(MLMR_male_lnCVR_T_Fitness$b[c(2:3),], MLMR_male_lnCVR_T_Fitness$ci.lb[c(2:3)], MLMR_male_lnCVR_T_Fitness$ci.ub[c(2:3)])
+
+      stress_T_m_VR <- cbind(MLMR_male_lnVR_T_stress$b[c(2:3),], MLMR_male_lnVR_T_stress$ci.lb[c(2:3)], MLMR_male_lnVR_T_stress$ci.ub[c(2:3)])
+      stress_T_m_CVR <- cbind(MLMR_male_lnCVR_T_stress$b[c(2:3),], MLMR_male_lnCVR_T_stress$ci.lb[c(2:3)], MLMR_male_lnCVR_T_stress$ci.ub[c(2:3)])
+
+    # Make a big tables for males
+       lnVR_males_ests <- cbind(rbind(all_T_m_lnVR, mag_T_m_lnVR, fitness_T_m_VR, stress_T_m_VR), male_N, location_y)
+      lnCVR_males_ests <- cbind(rbind(all_T_m_lnCVR, mag_T_m_lnCVR, fitness_T_m_CVR, stress_T_m_CVR), male_N, location_y)
+
+       # Females
+         all_T_f_lnVR <- cbind(MLMR_female_lnVR_T$b[1,], MLMR_female_lnVR_T$ci.lb[1], MLMR_female_lnVR_T$ci.ub[1])
+        all_T_f_lnCVR <- cbind(MLMR_female_lnCVR_T$b[1,], MLMR_female_lnCVR_T$ci.lb[1], MLMR_female_lnCVR_T$ci.ub[1])
+
+        mag_T_f_lnVR <- as.matrix(magnitude_females_mean_VR)
+        mag_T_f_lnCVR <- as.matrix(magnitude_females_mean)
+
+       fitness_T_f_VR <- cbind(MLMR_female_lnVR_T_Fitness$b[c(2:3),], MLMR_female_lnVR_T_Fitness$ci.lb[c(2:3)], MLMR_female_lnVR_T_Fitness$ci.ub[c(2:3)])
+      fitness_T_f_CVR <- cbind(MLMR_female_lnCVR_T_Fitness$b[c(2:3),], MLMR_female_lnCVR_T_Fitness$ci.lb[c(2:3)], MLMR_female_lnCVR_T_Fitness$ci.ub[c(2:3)])
+
+      stress_T_f_VR <- cbind(MLMR_female_lnVR_T_stress$b[c(2:3),], MLMR_female_lnVR_T_stress$ci.lb[c(2:3)], MLMR_female_lnVR_T_stress$ci.ub[c(2:3)])
+      stress_T_f_CVR <- cbind(MLMR_female_lnCVR_T_stress$b[c(2:3),], MLMR_female_lnCVR_T_stress$ci.lb[c(2:3)], MLMR_female_lnCVR_T_stress$ci.ub[c(2:3)])
+
+    # Make a big tables for males
+       lnVR_females_ests <- cbind(rbind(all_T_f_lnVR, mag_T_f_lnVR, fitness_T_f_VR, stress_T_f_VR), female_N, location_y)
+      lnCVR_females_ests <- cbind(rbind(all_T_f_lnCVR, mag_T_f_lnCVR, fitness_T_f_CVR, stress_T_f_CVR), female_N, location_y)
+
+
+```
+
+Now that we have everything we need we can plot the subset analyses together with overall effects for each of the effect sizes and males and females. We will focus on lnVR and lnCVR as these are the measures we are most interested in.
+
+
+```{r echo = TRUE, eval = TRUE, fig.width = 10.41410, fig.heigh = 8.15859}
+      # Lets make a plot
+      par(mar=c(4,8,2,2), mfrow = c(2,2))
+     
+      # Males - lnVR
+      plot(location_y ~ mean_mag, data = lnVR_males_ests, bty="n", xlim = c(-1, 1.6), ylab = "", xlab = "lnVR", yaxt = "n", pch = c(18,15,16, 16, 16, 16), cex = c(2, rep(1.5, 5)), ylim = c(0, 10), cex.lab = 1.5)
+      abline(v = 0, lty = 2, col = "gray", lwd = 2)
+      mtext("Males", font = 2, side=3, adj = 0.4, cex = 2)
+      arrows(x0=lnVR_males_ests$mean_mag, y0=lnVR_males_ests$location_y, x1=lnVR_males_ests$L_CI, y1=lnVR_males_ests$location_y, length = 0)
+      arrows(x0=lnVR_males_ests$mean_mag, y0=lnVR_males_ests$location_y, x1=lnVR_males_ests$U_CI, y1=lnVR_males_ests$location_y, length = 0)
+
+      nk <- paste0(lnVR_males_ests[,"n"], "[", lnVR_males_ests[,"k"], "]")
+      text(nk, y = lnVR_males_ests$location_y, x = 1.4)
+      text("n[k]", y = 9, x = 1.4, font = 2)
+
+      Labels <- c("Mean", "Mean Magnitude", "Direct", "Indirect", "Natural", "Stress")
+      mtext(Labels, at = lnVR_males_ests$location_y, side = 2, las = 1)
+      Headers <- c("Overall", "Fitness Measure", "Temp. Range")
+      mtext(Headers, at = c(3, 6, 9), side = 2, las = 1, font = 2)
+
+      # Males - lnCVR
+       plot(location_y ~ mean_mag, data = lnCVR_males_ests, bty="n", xlim = c(-1, 1.6), ylab = "", xlab = "lnCVR", yaxt = "n", pch = c(18,15,16, 16, 16, 16), cex = c(2, rep(1.5, 5)), ylim = c(0, 10),cex.lab = 1.5)
+      abline(v = 0, lty = 2, col = "gray", lwd = 2)
+      mtext("Males", font = 2, side=3, adj = 0.4, cex = 2)
+      arrows(x0=lnCVR_males_ests$mean_mag, y0=lnCVR_males_ests$location_y, x1=lnCVR_males_ests$L_CI, y1=lnCVR_males_ests$location_y, length = 0)
+      arrows(x0=lnCVR_males_ests$mean_mag, y0=lnCVR_males_ests$location_y, x1=lnCVR_males_ests$U_CI, y1=lnCVR_males_ests$location_y, length = 0)
+
+      nk <- paste0(lnCVR_males_ests[,"n"], "[", lnCVR_males_ests[,"k"], "]")
+      text(nk, y = lnCVR_males_ests$location_y, x = 1.4)
+      text("n[k]", y = 9, x = 1.4, font = 2)
+
+      Labels <- c("Mean", "Mean Magnitude", "Direct", "Indirect", "Natural", "Stress")
+      mtext(Labels, at = lnCVR_males_ests$location_y, side = 2, las = 1)
+      Headers <- c("Overall", "Fitness Measure", "Temp. Range")
+      mtext(Headers, at = c(3, 6, 9), side = 2, las = 1, font = 2)
+
+      # Females - lnVR
+
+      plot(location_y ~ mean_mag, data = lnVR_females_ests, bty="n", xlim = c(-1, 1.6), ylab = "", xlab = "lnVR", yaxt = "n", pch = c(18,15,16, 16, 16, 16), cex = c(2, rep(1.5, 5)), ylim = c(0, 10), cex.lab = 1.5)
+      abline(v = 0, lty = 2, col = "gray", lwd = 2)
+      mtext("Females", font = 2, side=3, adj = 0.4, cex = 2)
+      arrows(x0=lnVR_females_ests$mean_mag, y0=lnVR_females_ests$location_y, x1=lnVR_females_ests$L_CI, y1=lnVR_females_ests$location_y, length = 0)
+      arrows(x0=lnVR_females_ests$mean_mag, y0=lnVR_females_ests$location_y, x1=lnVR_females_ests$U_CI, y1=lnVR_females_ests$location_y, length = 0)
+
+      nk <- paste0(lnVR_females_ests[,"n"], "[", lnVR_females_ests[,"k"], "]")
+      text(nk, y = lnVR_females_ests$location_y, x = 1.4)
+      text("n[k]", y = 9, x = 1.4, font = 2)
+
+      Labels <- c("Mean", "Mean Magnitude", "Direct", "Indirect", "Natural", "Stress")
+      mtext(Labels, at = lnVR_females_ests$location_y, side = 2, las = 1)
+      Headers <- c("Overall", "Fitness Measure", "Temp. Range")
+      mtext(Headers, at = c(3, 6, 9), side = 2, las = 1, font = 2)
+
+      # Females - lnCVR
+
+      plot(location_y ~ mean_mag, data = lnCVR_females_ests, bty="n", xlim = c(-1, 1.6), ylab = "", xlab = "lnCVR", yaxt = "n", pch = c(18,15,16, 16, 16, 16), cex = c(2, rep(1.5, 5)), ylim = c(0, 10), cex.lab = 1.5)
+      abline(v = 0, lty = 2, col = "gray", lwd = 2)
+      mtext("Females", font = 2, side=3, adj = 0.4, cex = 2)
+      arrows(x0=lnCVR_females_ests$mean_mag, y0=lnCVR_females_ests$location_y, x1=lnCVR_females_ests$L_CI, y1=lnCVR_females_ests$location_y, length = 0)
+      arrows(x0=lnCVR_females_ests$mean_mag, y0=lnCVR_females_ests$location_y, x1=lnCVR_females_ests$U_CI, y1=lnCVR_females_ests$location_y, length = 0)
+
+      nk <- paste0(lnCVR_females_ests[,"n"], "[", lnCVR_females_ests[,"k"], "]")
+      text(nk, y = lnCVR_females_ests$location_y, x = 1.4)
+      text("n[k]", y = 9, x = 1.4, font = 2)
+
+      Labels <- c("Mean", "Mean Magnitude", "Direct", "Indirect", "Natural", "Stress")
+      mtext(Labels, at = lnCVR_females_ests$location_y, side = 2, las = 1)
+      Headers <- c("Overall", "Fitness Measure", "Temp. Range")
+      mtext(Headers, at = c(3, 6, 9), side = 2, las = 1, font = 2)
+```
 
 # Publication Bias
 
@@ -256,6 +636,39 @@ There does appear to be some strong outlying data points and some asymmetry in a
 
 Upon close reading of the research papers that were included in the meta-analysis, it is clear that study design varies a lot between studies. More specifically, many studies are temperature manipulations on isofemale lines or lab-bred populations that have been bred and reared in the lab for many (sometimes, hundreds) of generations. These lab colonies have wildly different temperature treatments to what would be normally encountered in nature, and to some extent, they are adapted quite well to the constant temperature conditions in which they have been bread. This means that, while temperature may affect the variance, it may also come down to which temperature treatment the population has adapted to with respect to how temperature impacts sexual selection. This means that, the relationship between temperature and its effect on sexual selection is not as simple as a linear relationship between temperature and variation in fitness, but rather it also depends on whether the temperature treatments involve a temperature for which the population is adapted to. We tested this idea by 'flipping' the direction of effect sizes depending on which temperature the population was adapted to. If this information could not be determined within the paper or using other sources we left the directionality of the effect the same.
 
+### Phylogeny
+We can have a look at finding a somewhat resolved phylogenetic tree of the taxa using the open tree of life. Trying time tree, there are too many unresolved taxa. To start, we need to first get the unique list of taxa in our data. We'll do this for the entire dataset and then we can prune the tree should we need to do this.
+
+```{r echo = TRUE, eval = TRUE, cache = TRUE, message = FALSE, warning = FALSE}
+    spp_names <- unique(data$spp)
+
+    # Search rotl
+      tl <- tnrs_match_names(spp_names)
+
+    # Generate the tree with the list of ott_ids
+      tree <- tol_induced_subtree(ott_ids=tl$ott_id)
+
+    # Have a look
+      plot(tree, cex = 0.8)
+```
+
+While the tree looks reasonably resolved, as we can see, there are a few problems here, even with `rotl`. *Drosophila melanogaster* is not found, and is then identified as a bird! *Phorticella striata* is identified as a single-celled organism, yet is supposed to be a fly. We can fix these obvious problems by manually finding the ott_id online for these taxa and adding them to the ott_id list:
+
+```{r echo = TRUE, eval = TRUE, cache = TRUE, message = FALSE, warning = FALSE}
+
+  ott_id <- tl$ott_id
+
+  # Add in the correct id for Drosophila and Phorticella
+    ott_id[c(13, 11)] <- c("505714", "4420733")
+
+    # Generate the tree with the list of ott_ids
+      tree <- tol_induced_subtree(ott_ids=ott_id)
+
+    # Have a look
+      plot(tree, cex = 0.8)
+```
+
+OK, now it looks more sensible. The taxa are placed into what looks to be about their correct taxonomic positions. Note that for *Phorticella striata* we used a different, and presumably closely related species *Phorticella flavipennes* given the other species was not identified in an online search. But, this is a Drosophlid like species and so its taxonomic position is correct within the tree.
 
 # Supplemental Figures and Tables
 
