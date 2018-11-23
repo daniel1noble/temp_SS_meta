@@ -191,10 +191,10 @@ The one challenge with these effects is that they contain directionality, howeve
 prior <- list(R=list(V = 1, nu =0.002), G = list(G1 = list(V=1, nu = 0.002), G2 = list(V=1, nu = 0.002)))
 
 # Run the Bayesian MLMA model
-model_magnitude_bayes_males <- MCMCglmm(yi ~ deltaT, mev = lnCVR_males$vi, random = ~study + spp, data = lnCVR_males, prior = prior, burnin = 10000, nitt = 1000000, thin = 100)
+model_magnitude_bayes_males <- MCMCglmm(yi ~ deltaT, mev = lnCVR_males$vi, random = ~study + spp, data = lnCVR_males, prior = prior, burnin = 10000, nitt = 1000000, thin = 100, verbose = FALSE)
 summary(model_magnitude_bayes_males)
 
-model_magnitude_bayes_malesVR <- MCMCglmm(yi ~ deltaT, mev = lnVR_males$vi, random = ~study + spp, data = lnVR_males, prior = prior, burnin = 10000, nitt = 1000000, thin = 100)
+model_magnitude_bayes_malesVR <- MCMCglmm(yi ~ deltaT, mev = lnVR_males$vi, random = ~study + spp, data = lnVR_males, prior = prior, burnin = 10000, nitt = 1000000, thin = 100, verbose = FALSE)
 summary(model_magnitude_bayes_malesVR)
 
 # Extract posteriors
@@ -283,11 +283,11 @@ Again, we can have a look at the magnitudes
 prior <- list(R=list(V = 1, nu =0.002), G = list(G1 = list(V=1, nu = 0.002)))
 
 # Run the Bayesian MLMA model
-model_magnitude_bayes_feamles <- MCMCglmm(yi ~ deltaT, mev = lnCVR_females$vi, random = ~study, data = lnCVR_females, prior = prior, burnin = 10000, nitt = 1000000, thin = 100)
+model_magnitude_bayes_feamles <- MCMCglmm(yi ~ deltaT, mev = lnCVR_females$vi, random = ~study, data = lnCVR_females, prior = prior, burnin = 10000, nitt = 1000000, thin = 100, verbose = FALSE)
 summary(model_magnitude_bayes_feamles)
 
-model_magnitude_bayes_feamles_VR <- MCMCglmm(yi ~ deltaT, mev = lnVR_females$vi, random = ~study, data = lnVR_females_ests, prior = prior, burnin = 10000, nitt = 1000000, thin = 100)
-summary(model__estsmagnitude_bayes_feamles_VR)
+model_magnitude_bayes_feamles_VR <- MCMCglmm(yi ~ deltaT, mev = lnVR_females$vi, random = ~study, data = lnVR_females, prior = prior, burnin = 10000, nitt = 1000000, thin = 100, verbose = FALSE)
+summary(model_magnitude_bayes_feamles_VR)
 
 # Extract posteriors
 sol_f <- model_magnitude_bayes_feamles$Sol
@@ -472,7 +472,7 @@ Some studies clearly manipulate temperatures outside or on the extreme of the no
 
 We can summarise the overall results with some forest plots for males and females. We'll use corrected. We will just use the lnVR and lnCVR results here. First we need to extract the relevant data.
 
-```{recho = TRUE, eval = TRUE}
+```{r echo = TRUE, eval = TRUE}
 
 # Get the sample sizes and sizes
     # Overall
@@ -601,6 +601,8 @@ Now that we have everything we need we can plot the subset analyses together wit
       Headers <- c("Overall", "Fitness Measure", "Temp. Range")
       mtext(Headers, at = c(3, 6, 9), side = 2, las = 1, font = 2)
 ```
+
+**Figure 1** – Meta-analytic means for a temperature treatment difference of 7.5 degrees Celsius across MLMA and MLMR models for the log variance ratio (lnVR) and the log coefficient of variation ratio (lnCVR) for males and females. n = total number of effect sizes, whereas k = the total number of studies. Mean estimates and 95% credible/confidence intervals are provided.
 
 # Publication Bias
 
