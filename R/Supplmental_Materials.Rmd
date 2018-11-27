@@ -311,7 +311,7 @@ Now that the Bayesian model is run, we have the overall meta-analytic mean and i
 magnitude_mean_females <- mu.fnorm(sol_f[,1], sqrt(rowSums(VCV_f)))
 magnitude_females_mean <- data.frame(mean_mag = mean(magnitude_mean_females), L_CI = HPDinterval(magnitude_mean_females)[1], U_CI = HPDinterval(magnitude_mean_females)[2])  
 
-magnitude_mean_females_VR <- mu.fnorm(sol_f[,1], sqrt(rowSums(VCV_f)))
+magnitude_mean_females_VR <- mu.fnorm(sol_f_VR[,1], sqrt(rowSums(VCV_f_VR)))
 magnitude_females_mean_VR <- data.frame(mean_mag = mean(magnitude_mean_females_VR), L_CI = HPDinterval(magnitude_mean_females_VR)[1], U_CI = HPDinterval(magnitude_mean_females_VR)[2])  
 
 ```
