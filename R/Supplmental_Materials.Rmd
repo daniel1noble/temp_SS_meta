@@ -226,6 +226,15 @@ magnitude_males_mean_VR <- data.frame(mean_mag = mean(magnitude_mean_males_VR), 
 
 ```
 
+##### lnVR - Magnitude
+```{r echo = TRUE, eval = TRUE, cache = TRUE, message = FALSE, warning = FALSE}
+magnitude_males_mean_VR
+```
+##### lnCVR - Magnitude
+```{r echo = TRUE, eval = TRUE, cache = TRUE, message = FALSE, warning = FALSE}
+magnitude_males_mean
+```
+
 OK, so, now we can see that the magnitude change in the log ratio of CV between treatments, is on average quite large, and does not overlap zero.  
 
 ## 2.2 - Females
@@ -314,6 +323,15 @@ magnitude_females_mean <- data.frame(mean_mag = mean(magnitude_mean_females), L_
 magnitude_mean_females_VR <- mu.fnorm(sol_f_VR[,1], sqrt(rowSums(VCV_f_VR)))
 magnitude_females_mean_VR <- data.frame(mean_mag = mean(magnitude_mean_females_VR), L_CI = HPDinterval(magnitude_mean_females_VR)[1], U_CI = HPDinterval(magnitude_mean_females_VR)[2])  
 
+```
+
+##### lnVR - Magnitude
+```{r echo = TRUE, eval = TRUE, cache = TRUE, message = FALSE, warning = FALSE}
+magnitude_females_mean_VR
+```
+##### lnCVR - Magnitude
+```{r echo = TRUE, eval = TRUE, cache = TRUE, message = FALSE, warning = FALSE}
+magnitude_females_mean
 ```
 
 OK, so, now we can see that the magnitude change in the log ratio of CV between treatments, is on average quite large, and does not overlap zero. 
