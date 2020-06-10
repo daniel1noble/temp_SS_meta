@@ -2,14 +2,16 @@
 title: "Meta-analysis on the effects of temperature on sexual selection"
 author: "García-Roa, R., Garcia-Gonzalez, F., Noble, D.W.A. & Carazo, P."
 date: '`r format(Sys.time(), "%d %B, %Y")`'
+always_allow_html: true
 output:
-  html_document:
+  bookdown::html_document2:
     code_folding: hide
-    theme: united
     toc: yes
     toc_float: yes
-  pdf_document:
+  bookdown::word_document2:
     toc: yes
+    number_sections: true
+    reference_docx: template.docx
 ---
 
 ```{r,echo=FALSE, cache=FALSE}
@@ -18,14 +20,14 @@ output:
   options(digits = 2)
 ```
 
-# 1.0 - Setting up and Data Exploration
+# Setting up and Data Exploration
 
-### 1.1 - Load Packages
+### Load Packages
 ```{r echo = TRUE, eval = TRUE}
-    pacman::p_load(metafor, MCMCglmm, tidyverse, rotl, magrittr, kableExtra, rmarkdown, gridExtra, psych, metaAidR)
+    pacman::p_load(metafor, MCMCglmm, tidyverse, rotl, magrittr, kableExtra, rmarkdown, gridExtra, psych, metaAidR, bindrcpp, pander)
 ```
 
-### 1.2 - Load Data
+### Load Data
 
 First, lets load the data into R:
 
@@ -89,7 +91,7 @@ lnCVR_females <- metafor::escalc(measure= "CVR", m1i= X_T2, m2i = X_T1, sd1i= Er
 
 Now we have size datasets with the effect size, `yi`, being the relevant ratio of means, standard deviations and coefficient of variations, for males and females and `vi` being the corresponding sampling variance. These datasets can then be substituted into the models to estimate overall effects, how moderators impact variance and the variation in effects overall. 
 
-### 1.3 - Data Exploration
+### Data Exploration
 
 Now that we have the `males` and `females` data created we can start some data exploration. We can first view these datasets, the raw data, if we want first. Since we have three different effect sizes, we'll just view the lnRR datasets for both sexes, but the raw data for each are provided should the reader be interested in looking at them all.
 
@@ -97,18 +99,24 @@ We'll look at the female data first. It's smaller:
 
 ```{r echo = TRUE, eval = TRUE}
    
-    kable(lnRR_females) %>%
-    kable_styling(font = 11) %>%
-    scroll_box(width = "100%", height = "200px")
+    # Word / pdf table
+    pander(lnRR_females)
+
+    #kable(lnRR_females) %>%
+    #kable_styling(font = 11) %>%
+    #scroll_box(width = "100%", height = "200px")
 
 ```
 
 Then we can look at the male data, it's a bit more as many studies quantify and seem to be interested mostly in male fitness (or fitness proxies) for sexual selection. At least in the context of temperature manipulations:
 
 ```{r echo = TRUE, eval = TRUE}  
-  kable(lnRR_males) %>%
-  kable_styling(font = 11) %>%
-  scroll_box(width = "100%", height = "200px")
+   # Word / pdf table
+    pander(lnRR_males)
+  
+#kable(lnRR_males) %>%
+  #kable_styling(font = 11) %>%
+  #scroll_box(width = "100%", height = "200px")
 ```
 
 We can also have a look at the mean-variance relationship in these data:
@@ -130,11 +138,11 @@ We can also have a look at the mean-variance relationship in these data:
 		grid.arrange(p1,p2, nrow =1)
 ```
 
-# 2.0 - Multi-level Meta-analytic Models (MLMA)
+# Multi-level Meta-analytic Models (MLMA)
 
 Now that the datasets are cleaned, effect sizes generated and explored a bit we are now ready to start meta-analysing. We first start with multi-level meta-analytic models (MLMA). These are essentially intercept-only random effects models that account for the known sampling variance of effects along with additional sources of non-independence, such as study and species in a single model. These models are useful for exploring heterogeneity in effects, estimating overall meta-analytic means to understand how temperature affects sexual selection across the entire population of studies and species included in our sample. Effect sizes here are not totally comparable because, as we are well aware, across studies they use different temperatures. However, we are aware of this and what this will essentially do is increase the heterogeneity in effects. Alternatively, this will somewhat get captured by the study-level / species-level random effect because temperature is likely a major driver of between study differences. So, for now, we will assume that effect sizes are comparable and then we can control for temperature differences in meta-regression models below. 
 
-## 2.1 - Males
+## Males
 
 We'll first have a look at the male data and each of the effect sizes of interest. 
 
@@ -150,8 +158,12 @@ Here we can see from the model output that there a high between-study variance i
 We can also get estimates of the between study, phylogenetic (if we have one), species and total heterogenity.
 
 ```{r echo = TRUE, eval = TRUE, cache = TRUE, message = FALSE, warning = FALSE}
-  kable(metaAidR::I2(MLMA_male_lnRR, MLMA_male_lnRR$vi))%>%
-  kable_styling(font = 14)
+  
+  tab <- metaAidR::I2(MLMA_male_lnRR, MLMA_male_lnRR$vi)
+  # kable(tab)%>%
+  # kable_styling(font = 14)
+  #
+  pander(tab)
 ```
 
 
@@ -166,8 +178,10 @@ Here we can see from the model output that there a moderate between-study varian
 We can also get estimates of the between study, phylogenetic (if we have one), species and total heterogenity.
 
 ```{r echo = TRUE, eval = TRUE, cache = TRUE, message = FALSE, warning = FALSE}
-  kable(metaAidR::I2(MLMA_male_lnVR, MLMA_male_lnVR$vi))%>%
-  kable_styling(font = 14)
+  tabF <- metaAidR::I2(MLMA_male_lnVR, MLMA_male_lnVR$vi)  
+  pander(tabF)
+  #kable(tabF)%>%
+  #kable_styling(font = 14)
 ```
 
 #### lnCVR
@@ -181,8 +195,10 @@ Here we can see from the model output that there a small between-study variance 
 We can also get estimates of the between study, phylogenetic (if we have one), species and total heterogenity.
 
 ```{r echo = TRUE, eval = TRUE, cache = TRUE, message = FALSE, warning = FALSE}
-  kable(metaAidR::I2(MLMA_male_lnCVR, MLMA_male_lnCVR$vi))%>%
-  kable_styling(font = 14)
+  tab2 <- metaAidR::I2(MLMA_male_lnCVR, MLMA_male_lnCVR$vi)  
+  pander(tab2)
+ #kable(tab2)%>%
+  #kable_styling(font = 14)
 ```
 
 The one challenge with these effects is that they contain directionality, however, as is indicated in our review, directionality may not be so easily predicted and there are good theoretical reasons to believe that such clear directional predictions do not likely exist. Hence, we can test this by analysing the magnitude of the response. Here we need to do a couple tricks to account for uncertainty and avoid bias. 
@@ -237,7 +253,7 @@ magnitude_males_mean
 
 OK, so, now we can see that the magnitude change in the log ratio of CV between treatments, is on average quite large, and does not overlap zero.  
 
-## 2.2 - Females
+## Females
 
 Now we'll look at the female data and each of the effect sizes of interest. 
 
@@ -252,8 +268,10 @@ Here we can see from the model output that there a high between-species variance
 We can also get estimates of the between study, phylogenetic (if we have one), species and total heterogenity.
 
 ```{r echo = TRUE, eval = TRUE, cache = TRUE, message = FALSE, warning = FALSE}
-  kable(metaAidR::I2(MLMA_female_lnRR, MLMA_female_lnRR$vi))%>%
-  kable_styling(font = 14)
+  tab3 <- metaAidR::I2(MLMA_female_lnRR, MLMA_female_lnRR$vi)
+  pander(tab3)
+  #kable(tab3)%>%
+  #kable_styling(font = 14)
 ```
 
 #### lnVR
@@ -267,8 +285,10 @@ Here we can see from the model output that there a moderate between-study varian
 We can also get estimates of the between study, phylogenetic (if we have one), species and total heterogenity.
 
 ```{r echo = TRUE, eval = TRUE, cache = TRUE, message = FALSE, warning = FALSE}
-  kable(metaAidR::I2(MLMA_female_lnVR, MLMA_female_lnVR$vi))%>%
-  kable_styling(font = 14)
+  tab4 <- metaAidR::I2(MLMA_female_lnVR, MLMA_female_lnVR$vi)  
+  pander(tab4)
+  #kable(tab4)%>%
+  #kable_styling(font = 14)
 ```
 
 #### lnCVR
@@ -282,9 +302,11 @@ Here we can see from the model output that there a small between-study variance 
 We can also get estimates of the between study, phylogenetic (if we have one), species and total heterogenity.
 
 ```{r echo = TRUE, eval = TRUE, cache = TRUE, message = FALSE, warning = FALSE}
-  table <- metaAidR::I2(MLMA_female_lnCVR, MLMA_female_lnCVR$vi)
-  kable(table)%>%
-  kable_styling(font = 14)
+  table5 <- metaAidR::I2(MLMA_female_lnCVR, MLMA_female_lnCVR$vi)
+  pander(table5)  
+
+  #kable(table5)%>%
+  #kable_styling(font = 14)
 ```
 
 Again, we can have a look at the magnitudes
@@ -336,13 +358,13 @@ magnitude_females_mean
 
 OK, so, now we can see that the magnitude change in the log ratio of CV between treatments, is on average quite large, and does not overlap zero. 
 
-# 3.0 - Multi-level Meta-regression Models (MLMR)
+# Multi-level Meta-regression Models (MLMR)
 
 Given our very limited sample size, we can only hope to run some simple meta-regression models exploring how a few hypothesized variables impact variation in effects.
 
-## 3.1 - Males
+## Males
 
-### 3.1.1 - When we control for temperature differences between treatments within a study what is the average effect size at an "average" temperature?
+### When we control for temperature differences between treatments within a study what is the average effect size at an "average" temperature?
 
 Here we want to simply control for the fact that effect sizes across studies are done with experimental temperature treatments that vary in temperature. What we want to now estimate is: 1) whether the magnitude of the effect get larger with greater temperature difference between the treatments and 2) what the average effect is when we control for temperature (i.e., scaled temperature)
 
@@ -365,7 +387,7 @@ Here we want to simply control for the fact that effect sizes across studies are
 
 **Conclusions**: When we standardise the temperature comparisons across the studies, for an average temperature difference of `r mean(data$T2-data$T1)` degrees Celsius there is no strong evidence for the mean of direct and indirect fitness estimates being impacted in males
 
-### 3.1.2 - Are there differences between direct and indirect estimates of fitness, after accounting for temperature?
+### Are there differences between direct and indirect estimates of fitness, after accounting for temperature?
 
 Here we want to explore if the results are moderated by whether or not our effect size was generated with some measure of direct fitness estimate (what we really want) versus if it comes from an indirect estimate, or trait that is linked with fitness. What we will do to test this, is fit a model
 
@@ -388,7 +410,7 @@ Here we want to explore if the results are moderated by whether or not our effec
 **Conclusions**: We see a slight effect of temperature between a `r mean(data$T2-data$T1)` degrees Celsius difference on the mean, when looking at direct fitness estimates the actual variance for fitness decreases significantly, where as for indirect estimates of traits the variance at higher temperatures actually increases (marginally significant). However, this effect is explained by changes in the mean as lnCVR, we see now change on direct estimates of fitness but a even stronger increase in variance for indirect traits linked with fitness.
 
 
-### 3.1.3 - Do stressful temperature comparisons lead to stronger effect sizes, when accounting for temperature differences across studies?
+### Do stressful temperature comparisons lead to stronger effect sizes, when accounting for temperature differences across studies?
 
 Some studies clearly manipulate temperatures outside or on the extreme of the normal range of temperatures. We hypothesized that stressful temperatures will likely result in a greater increase in variance. 
 
@@ -412,9 +434,9 @@ Some studies clearly manipulate temperatures outside or on the extreme of the no
 
 **Conclusions**: We see a strong effect of temperature on mean (decreased at higher temps) over a `r mean(data$T2-data$T1)` degrees Celsius difference when the temperatures being manipulated fall within the stressed range. When controlling for the effect of temperature on the mean, we see a strong increase in total variance in direct and indirect fitness estimates over a `r mean(data$T2-data$T1)` degrees Celsius difference. 
 
-## 3.2 - Females
+## Females
 
-### 3.2.1 - When we control for temperature differences between treatments within a study what is the average effect size at an "average" temperature?
+### When we control for temperature differences between treatments within a study what is the average effect size at an "average" temperature?
 
 Here we want to simply control for the fact that effect sizes across studies are done with experimental temperature treatments that vary in temperature. What we want to now estimate is: 1) whether the magnitude of the effect get larger with greater temperature difference between the treatments and 2) what the average effect is when we control for temperature (i.e., scaled temperature)
 
@@ -439,7 +461,7 @@ Here we want to simply control for the fact that effect sizes across studies are
 
 **Conclusions**: Result holds really when we account for temperature. Females don't seem to be affected much, with the caveat of it being lower powered.
 
-### 3.2.2 - Are there differences between direct and indirect estimates of fitness, when controlling for temperature?
+### Are there differences between direct and indirect estimates of fitness, when controlling for temperature?
 
 Here we want to explore if the results are moderated by whether or not our effect size was generated with some measure of direct fitness estimate (what we really want) versus if it comes from an indirect estimate, or trait that is linked with fitness. 
 
@@ -464,7 +486,7 @@ Here we want to explore if the results are moderated by whether or not our effec
 
 **Conclusions**: Over a `r mean(data$T2-data$T1)` degrees Celsius temperature difference we don't see much evidence that there are differences between direct and indirect estimates. 
 
-### 3.2.3 - Do stressful temperature comparisons lead to stronger effect sizes, when accounting for temperature differences across studies?
+### Do stressful temperature comparisons lead to stronger effect sizes, when accounting for temperature differences across studies?
 
 Some studies clearly manipulate temperatures outside or on the extreme of the normal range of temperatures. We hypothesized that stressful temperatures will likely result in a greater increase in variance. Here, there is strong overlap between the study and species and we have a very small sample size, so we'll just fit study for now (more levels) and should capture any between species variance.
 
@@ -488,7 +510,7 @@ Some studies clearly manipulate temperatures outside or on the extreme of the no
 
 **Conclusions**: We see a strong effect of temperature on mean (decreased at higher temps) over a `r mean(data$T2-data$T1)` degrees Celsius difference when the temperatures being manipulated fall within the stressed range. When controlling for the effect of temperature on the mean, we see a significant increase in total variance in direct and indirect fitness estimates over a `r mean(data$T2-data$T1)` degrees Celsius difference. 
 
-# 4.0 - Summary of Meta-analytic Results
+# Summary of Meta-analytic Results
 
 We can summarise the overall results with some forest plots for males and females. We'll use corrected. We will just use the lnVR and lnCVR results here. First we need to extract the relevant data.
 
@@ -630,11 +652,12 @@ Now that we have everything we need we can plot the subset analyses together wit
 
 **Figure 1** – Meta-analytic means for a temperature treatment difference of 7.5 degrees Celsius across MLMA and MLMR models for the log variance ratio (lnVR) and the log coefficient of variation ratio (lnCVR) for males and females. n = total number of effect sizes, whereas k = the total number of studies. Mean estimates and 95% credible/confidence intervals are provided. Subset analyses exploring the impact of various moderators on lnVR and lnCVR are provided ('circles'), along with the overall meta-analytic mean ('diamond') and the mean magnitude of variance differences between treatments ('square').
 
-# 5.0 - Publication Bias
+# Publication Bias
 
 We should always explore funnel plots. We'll do that for each effect size estimate for males and females. High levels of heterogeneity can lead to apparent asymmetries in funnel plots, and this is expected to be exacerbated with small sample sizes. We'll view the raw data first with the random effects models and then explore how funnel asymmetry changes when accounting for moderators
 
 ```{r echo = TRUE, eval = TRUE, cache = TRUE, message = FALSE, warning = FALSE, fig.width = 7.259912, fig.height = 8.458150}
+
 par(mfrow = c(3,2))
 
 # lnRR
@@ -672,11 +695,11 @@ We can also explore whether there are relationships of the effect sizes with the
 
 **Conclusions**: We do indeed see evidence for a negative relationship on mean lnRR over time for both males and females, but this is not significant. As more studies accumulate we might expect to see this relationship to become stronger.
 
-# 6.0 - Sensitivity Analyses
+# Sensitivity Analyses
 
 In this section we'll explore the impact of some of the assumptions made when extracting and calculating the effect sizes on the inferences drawn from the analyses. Our ability to account for everything is fairly limited given the small sample sizes as so few studies experimentally manipulate temperatures in the context of sexual selection. In any case, we should explore how they impact our inferences as best as we can.
 
-### 6.1 - Phylogeny
+### Phylogeny
 We can have a look at finding a somewhat resolved phylogenetic tree of the taxa using the open tree of life. Trying time tree, there are too many unresolved taxa. To start, we need to first get the unique list of taxa in our data. We'll do this for the entire dataset and then we can prune the tree should we need to do this.
 
 ```{r echo = TRUE, eval = TRUE, cache = TRUE, message = FALSE, warning = FALSE}
@@ -775,7 +798,7 @@ MLMA_female_lnCVR_phylo <- metafor::rma.mv(yi ~ 1, V = vi, random = list( ~1|stu
 We can see from the above, controlling for tree topology doesn't change the results much at all. 
 
 
-### 6.2 - Effect sizes derived from proportions
+### Effect sizes derived from proportions
 
 Much of the literature currently reports data as proportions, average and some measure of error. We are well aware that proportion data is not normally distributed as its bound between 0 and 1, however, when reported as an average it does have error and so long as its not "extreme" (i.e., close to 0 and 1), should behave as though it is normal. Nonetheless, this may affect conclusions and so we test if there were significant differences between effect sizes generated with proportion data after temperature correction. This is expected to have potentially stronger effects on variance so we will stick to our main analyses:
 
@@ -848,14 +871,14 @@ Just to be safe, and although our models are getting heavy on the parameters, we
 
 **Conclusions**: Across all models, when we account for the slight decrease in variance resulting from effects generated with proportion data we see no changes in any of the main conclusions.
 
-### 6.2 - Adapted temperatures of the population – A discussion
+### Adapted temperatures of the population – A discussion
 
 Upon close reading of the research papers that were included in the meta-analysis, it is clear that study design varies a lot. More specifically, many studies are temperature manipulations on isofemale lines or lab-bred populations that have been bred and reared in the lab for many (sometimes, hundreds) of generations. These lab colonies have different temperature treatments to what would be normally encountered in nature, and to some extent, they are adapted quite well to the constant temperature conditions in which they have been bread. This means that, while temperature may affect the variance, it may also come down to which temperature treatment the population has adapted to with respect to how temperature impacts sexual selection. This means that, the relationship between temperature and its effect on sexual selection is not as simple as a linear relationship between temperature and variation in fitness, but rather it also depends on whether the temperature treatments involve a temperature for which the population is adapted to. Our analysis on the 'magnitude' of change in variance across temperatures gets around the above problem, but it may still be important to have a closer inspection of this problem in the future. 
 
 Given the limited sample size and the fact that so few studies reported clearly what temperature populations were adapted to (we only really know this for experimental evolution studies), it was unclear how to best deal with this issue other than to acknowledge that it exists. Additionally, it could only be dealt with for a small sample of effect sizes in our dataset. For example, for males, we could only be confident about `r length(lnVR_males$Tadapt[is.na(lnVR_males$Tadapt) == FALSE])` of `r length(lnVR_males$Tadapt)` effects and only 4 of these involved a temperature that was one of the treatments. For females, we had information about `r length(lnVR_females$Tadapt[is.na(lnVR_females$Tadapt) == FALSE])` of `r length(lnVR_females$Tadapt)` effects and 4 of these involved a temperature that was one of the treatments. The other treatments varied and/or it was unclear. This is further challenging to deal with given that it is unclear how temperature adaptation itself will impact the variance. We presume that this will decrease phenotypic variance as a result of stabilizing selection, but this assumption is not entirely clear. 
 
 
-### 6.3 - Trait dependency among effects
+### Trait dependency among effects
 
 Given studies reported, at times, multiple traits – especially when considering indirect estimates as multiple traits were presented that could all be correlated with reproductive success (i.e., sperm motility, fertilization success). While we took the indirect estimate most closely associated with reproductive fitness where possible, at times it was not clear, and so we extracted a couple representative estimates. This induces some level of non-independence among effect sizes and so is something we should attempt to deal with. 
 
@@ -902,8 +925,8 @@ Now that we have the matrix with the relevant off-diagonals set to a correlation
 
 **Conclusions**: For the most part, these sensitivity analyses show that including the dependency among effects at the residual level does not impact any of the results
 
-# 7.0 - Session Information
+# Session Information
 
 ```{r echo = FALSE, eval = TRUE}
-sessionInfo()
+sessionInfo() %>% pander()
 ```
